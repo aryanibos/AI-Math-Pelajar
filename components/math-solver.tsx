@@ -111,27 +111,33 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (isLoading) return
 
     const trimmedText = textInput.trim()
-    if (trimmedText.length > MAX_TEXT_CHARS) {
-      setUploadError(`Teks soal maksimal ${MAX_TEXT_CHARS.toLocaleString("id-ID")} karakter.`)
+    const contextText = `[Tingkat: ${level}] ${levelDescriptions[level]}\n\nSoal:`
+
+    let assembledText = ""
+    if (imagePreview) {
+      assembledText = `${contextText}\nLihat dan analisis gambar soal matematika berikut, lalu selesaikan dengan langkah-langkah yang jelas:${trimmedText ? `\n\nKeterangan tambahan: ${trimmedText}` : ""}`
+    } else if (trimmedText) {
+      assembledText = `${contextText}\n${trimmedText}`
+    } else {
+      return
+    }
+
+    if (assembledText.length > MAX_TEXT_CHARS) {
+      setUploadError(`Teks soal maksimal ${MAX_TEXT_CHARS.toLocaleString("id-ID")} karakter (termasuk konteks tingkat).`)
       return
     }
 
     const parts: Array<{ type: "text"; text: string } | { type: "file"; mediaType: string; url: string }> = []
-    
-    // Add level context
-    const contextText = `[Tingkat: ${level}] ${levelDescriptions[level]}\n\nSoal:`
     
     if (imagePreview) {
       // Extract mime type from base64 data URL
       const mimeMatch = imagePreview.match(/^data:(image\/[a-zA-Z]+);base64,/)
       const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg"
       
-      parts.push({ type: "text", text: `${contextText}\nLihat dan analisis gambar soal matematika berikut, lalu selesaikan dengan langkah-langkah yang jelas:${trimmedText ? `\n\nKeterangan tambahan: ${trimmedText}` : ""}` })
+      parts.push({ type: "text", text: assembledText })
       parts.push({ type: "file", mediaType: mimeType, url: imagePreview })
-    } else if (trimmedText) {
-      parts.push({ type: "text", text: `${contextText}\n${trimmedText}` })
     } else {
-      return
+      parts.push({ type: "text", text: assembledText })
     }
 
     await sendMessage({ parts })

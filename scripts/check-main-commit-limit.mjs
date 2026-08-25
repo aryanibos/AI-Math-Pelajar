@@ -59,24 +59,20 @@ function countTodayFirstParentCommits(branch) {
 const branch = BRANCH_RAW;
 const todayCount = countTodayFirstParentCommits(branch);
 const projected = todayCount + PENDING;
-const atLimit = projected >= MAX;
-const overLimit = projected > MAX;
-
-let ok = true;
-if (overLimit) ok = false;
-if (atLimit && !overLimit && STOP && !RETRO) ok = false;
-if (atLimit && !overLimit && PENDING > 0 && !RETRO) ok = false;
 
 console.log(
   `Main commits today (WIB): ${todayCount}/${MAX}` +
     (PENDING ? ` (+${PENDING} pending → ${projected})` : ""),
 );
 
-if (!ok) {
-  if (STOP) {
-    console.error("Daily main commit limit reached — stopping.");
-    process.exit(1);
-  }
+// Cron gate: already at quota — stop without doing anything.
+if (STOP && !RETRO && todayCount >= MAX) {
+  console.error("Daily main commit limit reached — stopping.");
+  process.exit(1);
+}
+
+// Pre-push: block only when the pending commit would exceed the daily cap.
+if (projected > MAX) {
   console.error("Would exceed daily main commit limit.");
   process.exit(1);
 }
