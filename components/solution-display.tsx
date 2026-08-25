@@ -13,8 +13,6 @@ interface SolutionDisplayProps {
   messages: UIMessage[]
   isLoading: boolean
   level: NonNullable<EducationLevel>
-  imagePreview?: string | null
-  textInput?: string
 }
 
 const levelColors = {
@@ -28,29 +26,41 @@ export function SolutionDisplay({
   messages, 
   isLoading, 
   level,
-  imagePreview,
-  textInput 
 }: SolutionDisplayProps) {
   const userMessage = messages.find(m => m.role === "user")
   const assistantMessage = messages.find(m => m.role === "assistant")
 
+  const userText = userMessage?.parts
+    ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .map(p => p.text)
+    .join("\n")
+    .replace(/^\[Tingkat:.*?\]\s*.*?\n\nSoal:\s*/s, "")
+    .replace(/^Lihat dan analisis gambar soal matematika berikut, lalu selesaikan dengan langkah-langkah yang jelas:\s*/s, "")
+    .replace(/\n\nKeterangan tambahan:\s*/s, "\n")
+    .trim() ?? ""
+
+  const userImage = userMessage?.parts
+    ?.find((p): p is { type: "file"; mediaType: string; url: string } => p.type === "file")
+    ?.url
+
   const preprocessLatex = (text: string): string => {
-    // Convert various LaTeX formats to standard $$ and $ format
     let processed = text
-    
-    // Convert \[ ... \] to $$ ... $$
-    processed = processed.replace(/\\\[/g, '$$')
-    processed = processed.replace(/\\\]/g, '$$')
-    
-    // Convert [ ... ] (standalone math blocks) to $$ ... $$
-    // This handles cases like [ \frac{2x}{2} = \frac{10}{2} ]
-    processed = processed.replace(/^\[\s*(.+?)\s*\]$/gm, '$$$$$1$$$$')
-    processed = processed.replace(/\n\[\s*(.+?)\s*\]\n/g, '\n$$$$$1$$$$\n')
-    
-    // Convert \( ... \) to $ ... $
-    processed = processed.replace(/\\\(/g, '$')
-    processed = processed.replace(/\\\)/g, '$')
-    
+
+    processed = processed.replace(/\\\[/g, "$$")
+    processed = processed.replace(/\\\]/g, "$$")
+    processed = processed.replace(/\\\(/g, "$")
+    processed = processed.replace(/\\\)/g, "$")
+
+    // Only convert bracket blocks that look like LaTeX (contain backslash commands)
+    processed = processed.replace(
+      /^\[\s*(\\[^\]]+)\s*\]$/gm,
+      (_, math: string) => `$$${math}$$`,
+    )
+    processed = processed.replace(
+      /\n\[\s*(\\[^\]]+)\s*\]\n/g,
+      (_, math: string) => `\n$$${math}$$\n`,
+    )
+
     return processed
   }
 
@@ -79,17 +89,17 @@ export function SolutionDisplay({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {imagePreview && (
+          {userImage && (
             <div className="overflow-hidden rounded-xl border border-border bg-background">
               <img
-                src={imagePreview || "/placeholder.svg"}
+                src={userImage}
                 alt="Soal"
                 className="mx-auto max-h-[200px] w-auto object-contain"
               />
             </div>
           )}
-          {textInput && (
-            <p className="text-foreground">{textInput}</p>
+          {userText && (
+            <p className="whitespace-pre-wrap text-foreground">{userText}</p>
           )}
         </CardContent>
       </Card>

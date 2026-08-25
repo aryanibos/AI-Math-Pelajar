@@ -25,6 +25,8 @@ import {
 import { CameraCapture } from "@/components/camera-capture"
 import { SolutionDisplay } from "@/components/solution-display"
 import { Footer } from "@/components/footer"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MAX_IMAGE_BYTES } from "@/lib/solve-limits"
 
 interface MathSolverProps {
   level: NonNullable<EducationLevel>
@@ -50,9 +52,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [textInput, setTextInput] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [showCamera, setShowCamera] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, error, clearError } = useChat({
     transport: new DefaultChatTransport({ api: "/api/solve" }),
   })
 
@@ -60,21 +63,39 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setImagePreview(event.target?.result as string)
-        setInputMode("upload")
-      }
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    setUploadError(null)
+    clearError()
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Hanya file gambar yang didukung.")
+      return
     }
-  }, [])
+
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string)
+      setInputMode("upload")
+    }
+    reader.onerror = () => {
+      setUploadError("Gagal membaca file gambar.")
+    }
+    reader.readAsDataURL(file)
+  }, [clearError])
 
   const handleCameraCapture = useCallback((imageData: string) => {
+    setUploadError(null)
+    clearError()
     setImagePreview(imageData)
     setInputMode("camera")
     setShowCamera(false)
-  }, [])
+  }, [clearError])
 
   const handleSubmit = useCallback(async () => {
     if (isLoading) return
@@ -104,9 +125,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setTextInput("")
     setImagePreview(null)
     setInputMode(null)
+    setUploadError(null)
+    clearError()
     setMessages([])
     if (fileInputRef.current) fileInputRef.current.value = ""
-  }, [setMessages])
+  }, [setMessages, clearError])
 
   const hasSolution = messages.some(m => m.role === "assistant")
 
@@ -147,6 +170,14 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-6">
+        {(error || uploadError) && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              {uploadError ?? error?.message ?? "Terjadi kesalahan saat memproses soal. Silakan coba lagi."}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <AnimatePresence mode="wait">
           {!hasSolution ? (
             <motion.div
@@ -357,8 +388,6 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 messages={messages} 
                 isLoading={isLoading}
                 level={level}
-                imagePreview={imagePreview}
-                textInput={textInput}
               />
             </motion.div>
           )}

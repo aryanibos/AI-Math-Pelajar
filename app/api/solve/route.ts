@@ -1,4 +1,6 @@
 import { streamText, convertToModelMessages, UIMessage } from "ai"
+import { solveRequestSchema } from "@/lib/solve-validation"
+import { MAX_BODY_BYTES } from "@/lib/solve-limits"
 
 export const maxDuration = 60
 
@@ -45,12 +47,35 @@ PENYESUAIAN TINGKAT:
 - S1: Gunakan pendekatan formal, bukti matematis jika perlu, dan referensi teori`
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  const contentLength = Number(req.headers.get("content-length") ?? 0)
+  if (contentLength > MAX_BODY_BYTES) {
+    return Response.json(
+      { error: "Request body too large" },
+      { status: 413 },
+    )
+  }
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+
+  const parsed = solveRequestSchema.safeParse(body)
+  if (!parsed.success) {
+    return Response.json(
+      { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+
+  const { messages } = parsed.data
 
   const result = streamText({
     model: "openai/gpt-4o",
     system: systemPrompt,
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(messages as UIMessage[]),
     abortSignal: req.signal,
     maxOutputTokens: 4000,
   })
