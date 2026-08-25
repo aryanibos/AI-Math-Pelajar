@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     abortSignal: req.signal,
-    maxTokens: 4000,
+    maxOutputTokens: 4000,
   })
 
   return result.toUIMessageStreamResponse()

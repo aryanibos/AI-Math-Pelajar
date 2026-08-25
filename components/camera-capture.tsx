@@ -13,32 +13,36 @@ interface CameraCaptureProps {
 export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const startCamera = useCallback(async () => {
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+  }, [])
+
+  const startCamera = useCallback(async (mode: "user" | "environment" = facingMode) => {
     setIsLoading(true)
     setError(null)
-    
+
     try {
-      // Stop existing stream
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-      }
+      stopStream()
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode,
+          facingMode: mode,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
         audio: false,
       })
 
-      setStream(mediaStream)
-      
+      streamRef.current = mediaStream
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream
         await videoRef.current.play()
@@ -48,47 +52,42 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [facingMode, stream])
+  }, [facingMode, stopStream])
 
   useEffect(() => {
-    startCamera()
-    
+    startCamera(facingMode)
+
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-      }
+      stopStream()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [facingMode, startCamera, stopStream])
 
   const handleSwitchCamera = useCallback(() => {
-    setFacingMode(prev => prev === "user" ? "environment" : "user")
-    startCamera()
-  }, [startCamera])
+    setFacingMode(prev => (prev === "user" ? "environment" : "user"))
+  }, [])
 
   const handleCapture = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return
 
     const video = videoRef.current
     const canvas = canvasRef.current
-    
+
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
-    
+
     const ctx = canvas.getContext("2d")
     if (ctx) {
       ctx.drawImage(video, 0, 0)
       const imageData = canvas.toDataURL("image/jpeg", 0.9)
+      stopStream()
       onCapture(imageData)
     }
-  }, [onCapture])
+  }, [onCapture, stopStream])
 
   const handleClose = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop())
-    }
+    stopStream()
     onClose()
-  }, [stream, onClose])
+  }, [stopStream, onClose])
 
   return (
     <motion.div
@@ -115,12 +114,12 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           )}
-          
+
           {error && (
             <div className="absolute inset-0 flex items-center justify-center p-4 text-center">
               <div>
                 <p className="mb-4 text-destructive">{error}</p>
-                <Button onClick={startCamera}>Coba Lagi</Button>
+                <Button onClick={() => startCamera(facingMode)}>Coba Lagi</Button>
               </div>
             </div>
           )}
@@ -132,7 +131,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             muted
             className={`h-full w-full object-cover ${isLoading || error ? 'invisible' : ''}`}
           />
-          
+
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
@@ -146,7 +145,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           >
             <SwitchCamera className="h-5 w-5" />
           </Button>
-          
+
           <Button
             size="lg"
             onClick={handleCapture}
@@ -155,7 +154,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           >
             <Camera className="h-6 w-6" />
           </Button>
-          
+
           <div className="h-10 w-10" /> {/* Spacer for alignment */}
         </div>
       </div>

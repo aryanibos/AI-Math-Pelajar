@@ -79,7 +79,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const handleSubmit = useCallback(async () => {
     if (isLoading) return
 
-    const parts: Array<{ type: "text"; text: string } | { type: "image"; image: string; mimeType?: string }> = []
+    const parts: Array<{ type: "text"; text: string } | { type: "file"; mediaType: string; url: string }> = []
     
     // Add level context
     const contextText = `[Tingkat: ${level}] ${levelDescriptions[level]}\n\nSoal:`
@@ -90,7 +90,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg"
       
       parts.push({ type: "text", text: `${contextText}\nLihat dan analisis gambar soal matematika berikut, lalu selesaikan dengan langkah-langkah yang jelas:${textInput.trim() ? `\n\nKeterangan tambahan: ${textInput.trim()}` : ""}` })
-      parts.push({ type: "image", image: imagePreview, mimeType })
+      parts.push({ type: "file", mediaType: mimeType, url: imagePreview })
     } else if (textInput.trim()) {
       parts.push({ type: "text", text: `${contextText}\n${textInput.trim()}` })
     } else {
@@ -105,6 +105,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setImagePreview(null)
     setInputMode(null)
     setMessages([])
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }, [setMessages])
 
   const hasSolution = messages.some(m => m.role === "assistant")
