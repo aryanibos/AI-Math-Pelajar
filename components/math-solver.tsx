@@ -92,6 +92,16 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const handleCameraCapture = useCallback((imageData: string) => {
     setUploadError(null)
     clearError()
+
+    const base64 = imageData.split(",")[1]
+    const estimatedBytes = base64
+      ? Math.ceil((base64.length * 3) / 4)
+      : imageData.length
+    if (estimatedBytes > MAX_IMAGE_BYTES) {
+      setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB. Coba ambil foto lebih dekat.`)
+      return
+    }
+
     setImagePreview(imageData)
     setInputMode("camera")
     setShowCamera(false)

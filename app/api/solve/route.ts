@@ -1,6 +1,11 @@
 import { streamText, convertToModelMessages, UIMessage } from "ai"
 import { solveRequestSchema } from "@/lib/solve-validation"
-import { MAX_BODY_BYTES } from "@/lib/solve-limits"
+import {
+  MAX_BODY_BYTES,
+  RATE_LIMIT_REQUESTS,
+  RATE_LIMIT_WINDOW_MS,
+} from "@/lib/solve-limits"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export const maxDuration = 60
 
@@ -47,6 +52,21 @@ PENYESUAIAN TINGKAT:
 - S1: Gunakan pendekatan formal, bukti matematis jika perlu, dan referensi teori`
 
 export async function POST(req: Request) {
+  const rate = checkRateLimit(
+    `solve:${getClientIp(req)}`,
+    RATE_LIMIT_REQUESTS,
+    RATE_LIMIT_WINDOW_MS,
+  )
+  if (!rate.ok) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      },
+    )
+  }
+
   const contentLength = Number(req.headers.get("content-length") ?? 0)
   if (contentLength > MAX_BODY_BYTES) {
     return Response.json(
