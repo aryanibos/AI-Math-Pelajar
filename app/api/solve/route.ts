@@ -6,6 +6,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
 } from "@/lib/solve-limits"
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
 
 export const maxDuration = 60
 
@@ -67,8 +68,8 @@ export async function POST(req: Request) {
     )
   }
 
-  const contentLength = Number(req.headers.get("content-length") ?? 0)
-  if (contentLength > MAX_BODY_BYTES) {
+  const raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
+  if (!raw.ok) {
     return Response.json(
       { error: "Request body too large" },
       { status: 413 },
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
 
   let body: unknown
   try {
-    body = await req.json()
+    body = JSON.parse(raw.text)
   } catch {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }

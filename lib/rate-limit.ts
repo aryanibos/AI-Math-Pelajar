@@ -3,12 +3,19 @@ type Bucket = { count: number; resetAt: number }
 const buckets = new Map<string, Bucket>()
 
 /** Simple in-memory sliding-window rate limiter (per server instance). */
+function pruneExpiredBuckets(now: number) {
+  for (const [key, bucket] of buckets) {
+    if (now >= bucket.resetAt) buckets.delete(key)
+  }
+}
+
 export function checkRateLimit(
   key: string,
   limit: number,
   windowMs: number,
 ): { ok: true } | { ok: false; retryAfterSec: number } {
   const now = Date.now()
+  if (buckets.size > 500) pruneExpiredBuckets(now)
   const bucket = buckets.get(key)
 
   if (!bucket || now >= bucket.resetAt) {
