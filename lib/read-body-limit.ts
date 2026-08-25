@@ -21,7 +21,10 @@ export async function readRequestBodyWithLimit(
       const { done, value } = await reader.read()
       if (done) break
       total += value.byteLength
-      if (total > maxBytes) return { ok: false }
+      if (total > maxBytes) {
+        await reader.cancel()
+        return { ok: false }
+      }
       chunks.push(value)
     }
   } finally {

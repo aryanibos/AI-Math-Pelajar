@@ -24,7 +24,8 @@ const filePartSchema = z.object({
 const messagePartSchema = z.union([textPartSchema, filePartSchema])
 
 const uiMessageSchema = z.object({
-  role: z.enum(["user", "assistant", "system"]),
+  // Reject client-supplied assistant/system messages (prompt injection).
+  role: z.literal("user"),
   parts: z.array(messagePartSchema).min(1).max(20),
 })
 

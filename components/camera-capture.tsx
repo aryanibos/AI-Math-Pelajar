@@ -16,6 +16,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const streamRef = useRef<MediaStream | null>(null)
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
   const [isLoading, setIsLoading] = useState(true)
+  const [isVideoReady, setIsVideoReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const stopStream = useCallback(() => {
@@ -27,6 +28,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
   const startCamera = useCallback(async (mode: "user" | "environment" = facingMode) => {
     setIsLoading(true)
+    setIsVideoReady(false)
     setError(null)
 
     try {
@@ -70,6 +72,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     if (!videoRef.current || !canvasRef.current) return
 
     const video = videoRef.current
+    if (video.videoWidth === 0 || video.videoHeight === 0) return
     const canvas = canvasRef.current
 
     canvas.width = video.videoWidth
@@ -129,6 +132,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             autoPlay
             playsInline
             muted
+            onLoadedMetadata={() => setIsVideoReady(true)}
             className={`h-full w-full object-cover ${isLoading || error ? 'invisible' : ''}`}
           />
 
@@ -141,7 +145,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             variant="outline"
             size="icon"
             onClick={handleSwitchCamera}
-            disabled={isLoading || !!error}
+            disabled={isLoading || !!error || !isVideoReady}
           >
             <SwitchCamera className="h-5 w-5" />
           </Button>
@@ -149,7 +153,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           <Button
             size="lg"
             onClick={handleCapture}
-            disabled={isLoading || !!error}
+            disabled={isLoading || !!error || !isVideoReady}
             className="h-14 w-14 rounded-full"
           >
             <Camera className="h-6 w-6" />
