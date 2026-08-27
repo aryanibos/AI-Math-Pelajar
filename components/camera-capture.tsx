@@ -4,6 +4,7 @@ import { useRef, useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { X, Camera, SwitchCamera, Loader2 } from "lucide-react"
+import { MAX_IMAGE_BYTES, estimateDataUrlBytes } from "@/lib/solve-limits"
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void
@@ -85,13 +86,27 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     if (video.videoWidth === 0 || video.videoHeight === 0) return
     const canvas = canvasRef.current
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    const maxEdge = 1600
+    let { videoWidth: width, videoHeight: height } = video
+    if (width > maxEdge || height > maxEdge) {
+      const scale = maxEdge / Math.max(width, height)
+      width = Math.round(width * scale)
+      height = Math.round(height * scale)
+    }
+
+    canvas.width = width
+    canvas.height = height
 
     const ctx = canvas.getContext("2d")
     if (ctx) {
-      ctx.drawImage(video, 0, 0)
-      const imageData = canvas.toDataURL("image/jpeg", 0.9)
+      ctx.drawImage(video, 0, 0, width, height)
+
+      let imageData = ""
+      for (let quality = 0.9; quality >= 0.5; quality -= 0.1) {
+        imageData = canvas.toDataURL("image/jpeg", quality)
+        if (estimateDataUrlBytes(imageData) <= MAX_IMAGE_BYTES) break
+      }
+
       stopStream()
       onCapture(imageData)
     }

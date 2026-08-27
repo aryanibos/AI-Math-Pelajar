@@ -16,7 +16,10 @@ const dataUrlImageSchema = z
 
 const textPartSchema = z.object({
   type: z.literal("text"),
-  text: z.string().min(1).max(MAX_TEXT_CHARS),
+  text: z
+    .string()
+    .transform((s) => s.trim())
+    .pipe(z.string().min(1).max(MAX_TEXT_CHARS)),
 })
 
 function normalizeImageMime(mime: string): string {
