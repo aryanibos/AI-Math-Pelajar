@@ -213,6 +213,7 @@ export function SolutionDisplay({
                       </a>
                     )
                   },
+                  img: () => null,
                 }}
               >
                 {solutionText}

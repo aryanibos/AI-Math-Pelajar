@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { motion, AnimatePresence } from "framer-motion"
@@ -54,15 +54,25 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [showCamera, setShowCamera] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const submittingRef = useRef(false)
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/solve",
+        // API accepts exactly one user message; filter role to allow retry after errors.
+        prepareSendMessagesRequest: ({ messages: msgs, ...rest }) => ({
+          body: {
+            ...rest.body,
+            messages: msgs.filter((m) => m.role === "user").slice(-1),
+          },
+        }),
+      }),
+    [],
+  )
 
   const { messages, sendMessage, status, setMessages, error, clearError, stop } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/solve",
-      // API accepts exactly one message; send only the latest to allow retry after errors.
-      prepareSendMessagesRequest: ({ messages: msgs, ...rest }) => ({
-        body: { ...rest.body, messages: msgs.slice(-1) },
-      }),
-    }),
+    transport,
   })
 
   useEffect(() => {
@@ -131,7 +141,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [clearError])
 
   const handleSubmit = useCallback(async () => {
-    if (isLoading) return
+    if (submittingRef.current || isLoading) return
+    submittingRef.current = true
 
     setUploadError(null)
     clearError()
@@ -145,11 +156,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     } else if (trimmedText) {
       assembledText = `${contextText}\n${trimmedText}`
     } else {
+      submittingRef.current = false
       return
     }
 
     if (assembledText.length > MAX_TEXT_CHARS) {
       setUploadError(`Teks soal maksimal ${MAX_TEXT_CHARS.toLocaleString("id-ID")} karakter (termasuk konteks tingkat).`)
+      submittingRef.current = false
       return
     }
 
@@ -161,6 +174,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg"
       if (!isAllowedImageMime(mimeType)) {
         setUploadError("Format gambar harus JPEG, PNG, WebP, atau GIF.")
+        submittingRef.current = false
         return
       }
       
@@ -170,7 +184,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       parts.push({ type: "text", text: assembledText })
     }
 
-    await sendMessage({ parts })
+    try {
+      await sendMessage({ parts })
+    } finally {
+      submittingRef.current = false
+    }
   }, [isLoading, level, textInput, imagePreview, sendMessage, clearError])
 
   const handleReset = useCallback(() => {
