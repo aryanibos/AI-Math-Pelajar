@@ -30,6 +30,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
   const startCamera = useCallback(async (mode: "user" | "environment" = facingMode) => {
     const requestId = ++startRequestRef.current
+    // Defer state updates so camera init stays out of the effect's sync path.
+    await Promise.resolve()
+    if (requestId !== startRequestRef.current) return
+
     setIsLoading(true)
     setIsVideoReady(false)
     setError(null)
