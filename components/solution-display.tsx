@@ -27,8 +27,8 @@ export function SolutionDisplay({
   isLoading, 
   level,
 }: SolutionDisplayProps) {
-  const userMessage = messages.find(m => m.role === "user")
-  const assistantMessage = messages.find(m => m.role === "assistant")
+  const userMessage = [...messages].reverse().find(m => m.role === "user")
+  const assistantMessage = [...messages].reverse().find(m => m.role === "assistant")
 
   const userText = userMessage?.parts
     ?.filter((p): p is { type: "text"; text: string } => p.type === "text")

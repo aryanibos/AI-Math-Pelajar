@@ -9,7 +9,7 @@ import {
 
 const dataUrlImageSchema = z
   .string()
-  .regex(/^data:image\/(jpeg|jpg|png|webp|gif);base64,[\w+/=]+$/i, "Invalid image data URL")
+  .regex(/^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/i, "Invalid image data URL")
   .refine((url) => estimateDataUrlBytes(url) <= MAX_IMAGE_BYTES, {
     message: `Image must be at most ${MAX_IMAGE_BYTES / (1024 * 1024)}MB`,
   })

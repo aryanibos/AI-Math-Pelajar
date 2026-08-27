@@ -26,7 +26,7 @@ import { CameraCapture } from "@/components/camera-capture"
 import { SolutionDisplay } from "@/components/solution-display"
 import { Footer } from "@/components/footer"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime } from "@/lib/solve-limits"
+import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes } from "@/lib/solve-limits"
 import { formatChatError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
@@ -57,7 +57,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { messages, sendMessage, status, setMessages, error, clearError, stop } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/solve" }),
+    transport: new DefaultChatTransport({
+      api: "/api/solve",
+      // API accepts exactly one message; send only the latest to allow retry after errors.
+      prepareSendMessagesRequest: ({ messages: msgs, ...rest }) => ({
+        body: { ...rest.body, messages: msgs.slice(-1) },
+      }),
+    }),
   })
 
   useEffect(() => {
@@ -95,7 +101,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      setImagePreview(event.target?.result as string)
+      const dataUrl = event.target?.result as string
+      if (estimateDataUrlBytes(dataUrl) > MAX_IMAGE_BYTES) {
+        setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
+        if (fileInputRef.current) fileInputRef.current.value = ""
+        return
+      }
+      setImagePreview(dataUrl)
       setInputMode("upload")
     }
     reader.onerror = () => {
@@ -109,11 +121,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setUploadError(null)
     clearError()
 
-    const base64 = imageData.split(",")[1]
-    const estimatedBytes = base64
-      ? Math.ceil((base64.length * 3) / 4)
-      : imageData.length
-    if (estimatedBytes > MAX_IMAGE_BYTES) {
+    if (estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
       setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB. Coba ambil foto lebih dekat.`)
       return
     }
