@@ -16,7 +16,10 @@ export function formatChatError(message: string | undefined): string {
   try {
     const parsed = JSON.parse(message) as { error?: string }
     if (typeof parsed.error === "string") {
-      return ERROR_MESSAGES[parsed.error] ?? parsed.error
+      return (
+        ERROR_MESSAGES[parsed.error] ??
+        "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
+      )
     }
   } catch {
     // Not JSON — fall through.
