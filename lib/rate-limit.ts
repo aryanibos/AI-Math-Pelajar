@@ -1,11 +1,20 @@
 type Bucket = { count: number; resetAt: number }
 
 const buckets = new Map<string, Bucket>()
+const MAX_BUCKETS = 500
 
 /** Simple in-memory fixed-window rate limiter (per server instance). */
 function pruneExpiredBuckets(now: number) {
   for (const [key, bucket] of buckets) {
     if (now >= bucket.resetAt) buckets.delete(key)
+  }
+}
+
+function enforceMaxBuckets() {
+  if (buckets.size <= MAX_BUCKETS) return
+  const entries = [...buckets.entries()].sort((a, b) => a[1].resetAt - b[1].resetAt)
+  for (const [key] of entries.slice(0, buckets.size - MAX_BUCKETS)) {
+    buckets.delete(key)
   }
 }
 
@@ -20,6 +29,7 @@ export function checkRateLimit(
 
   if (!bucket || now >= bucket.resetAt) {
     buckets.set(key, { count: 1, resetAt: now + windowMs })
+    enforceMaxBuckets()
     return { ok: true }
   }
 

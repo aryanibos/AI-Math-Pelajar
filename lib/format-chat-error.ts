@@ -8,18 +8,44 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Layanan AI sedang tidak tersedia. Silakan coba lagi nanti.",
 }
 
+const DETAIL_MESSAGES: Record<string, string> = {
+  "Invalid image data URL": "Format gambar tidak valid.",
+  "Image must be at most 5MB": "Gambar maksimal 5MB.",
+  "mediaType must match the image data URL":
+    "Format gambar tidak cocok dengan data yang dikirim.",
+  "Exactly one text part required": "Teks soal wajib diisi.",
+  "At most one image allowed": "Maksimal satu gambar per permintaan.",
+}
+
+function translateDetail(detail: string): string {
+  return DETAIL_MESSAGES[detail] ?? detail
+}
+
+function firstDetail(details: Record<string, string[] | undefined> | undefined): string | undefined {
+  if (!details) return undefined
+  for (const messages of Object.values(details)) {
+    const first = messages?.find((m): m is string => typeof m === "string" && m.length > 0)
+    if (first) return translateDetail(first)
+  }
+  return undefined
+}
+
 export function formatChatError(message: string | undefined): string {
   if (!message) {
     return "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
   }
 
   try {
-    const parsed = JSON.parse(message) as { error?: string }
+    const parsed = JSON.parse(message) as {
+      error?: string
+      details?: Record<string, string[] | undefined>
+    }
     if (typeof parsed.error === "string") {
-      return (
+      const base =
         ERROR_MESSAGES[parsed.error] ??
         "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
-      )
+      const detail = firstDetail(parsed.details)
+      return detail ? `${base} ${detail}` : base
     }
   } catch {
     // Not JSON — fall through.
