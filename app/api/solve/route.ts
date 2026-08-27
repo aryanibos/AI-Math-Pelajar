@@ -102,7 +102,14 @@ export async function POST(req: Request) {
       maxOutputTokens: 4000,
     })
 
-    return result.toUIMessageStreamResponse()
+    return result.toUIMessageStreamResponse({
+      onError: (error) => {
+        console.error("Solve API stream error:", error)
+        return JSON.stringify({
+          error: "AI service unavailable. Please try again later.",
+        })
+      },
+    })
   } catch (err) {
     console.error("Solve API error:", err)
     return Response.json(

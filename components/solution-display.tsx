@@ -196,6 +196,23 @@ export function SolutionDisplay({
                       {children}
                     </blockquote>
                   ),
+                  a: ({ href, children }) => {
+                    const safe =
+                      typeof href === "string" && /^https?:\/\//i.test(href)
+                        ? href
+                        : undefined
+                    if (!safe) return <span>{children}</span>
+                    return (
+                      <a
+                        href={safe}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        {children}
+                      </a>
+                    )
+                  },
                 }}
               >
                 {solutionText}

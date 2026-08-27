@@ -17,7 +17,6 @@ import {
   Send, 
   Loader2, 
   X, 
-  ImageIcon,
   Calculator,
   Sparkles,
   RefreshCw
