@@ -112,6 +112,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       }
 
       if (estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
+        stopStream()
         setError(
           `Gambar masih terlalu besar (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba ambil foto lebih dekat atau kurangi detail.`,
         )

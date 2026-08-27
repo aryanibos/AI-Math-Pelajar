@@ -19,7 +19,14 @@ const textPartSchema = z.object({
   text: z
     .string()
     .transform((s) => s.trim())
-    .pipe(z.string().min(1).max(MAX_TEXT_CHARS)),
+    .pipe(
+      z
+        .string()
+        .min(1, { message: "Exactly one text part required" })
+        .max(MAX_TEXT_CHARS, {
+          message: `Teks soal maksimal ${MAX_TEXT_CHARS.toLocaleString("id-ID")} karakter.`,
+        }),
+    ),
 })
 
 function normalizeImageMime(mime: string): string {
