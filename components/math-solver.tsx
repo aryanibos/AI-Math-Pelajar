@@ -134,6 +134,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const handleSubmit = useCallback(async () => {
     if (isLoading) return
 
+    setUploadError(null)
+    clearError()
+
     const trimmedText = textInput.trim()
     const contextText = `[Tingkat: ${level}] ${levelDescriptions[level]}\n\nSoal:`
 
@@ -169,7 +172,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     }
 
     await sendMessage({ parts })
-  }, [isLoading, level, textInput, imagePreview, sendMessage])
+  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError])
 
   const handleReset = useCallback(() => {
     stop()
