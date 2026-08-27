@@ -93,13 +93,21 @@ export async function POST(req: Request) {
 
   const { messages } = parsed.data
 
-  const result = streamText({
-    model: "openai/gpt-4o",
-    system: systemPrompt,
-    messages: await convertToModelMessages(messages as UIMessage[]),
-    abortSignal: req.signal,
-    maxOutputTokens: 4000,
-  })
+  try {
+    const result = streamText({
+      model: "openai/gpt-4o",
+      system: systemPrompt,
+      messages: await convertToModelMessages(messages as UIMessage[]),
+      abortSignal: req.signal,
+      maxOutputTokens: 4000,
+    })
 
-  return result.toUIMessageStreamResponse()
+    return result.toUIMessageStreamResponse()
+  } catch (err) {
+    console.error("Solve API error:", err)
+    return Response.json(
+      { error: "AI service unavailable. Please try again later." },
+      { status: 503 },
+    )
+  }
 }

@@ -74,6 +74,7 @@ export function SolutionDisplay({
   }
 
   const solutionText = getAssistantText()
+  const hasEmptySolution = !isLoading && !solutionText && !!assistantMessage
 
   return (
     <div className="space-y-6">
@@ -133,6 +134,12 @@ export function SolutionDisplay({
                 <Sparkles className="h-8 w-8 text-primary" />
               </motion.div>
               <p className="text-muted-foreground">AI sedang menganalisis soal...</p>
+            </div>
+          ) : hasEmptySolution ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">
+                AI tidak mengembalikan jawaban. Silakan coba lagi dengan soal yang lebih jelas.
+              </p>
             </div>
           ) : (
             <motion.div

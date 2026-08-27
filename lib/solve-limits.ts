@@ -5,6 +5,13 @@ export const MAX_BODY_BYTES = 8 * 1024 * 1024
 export const RATE_LIMIT_REQUESTS = 15
 export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 
+export const ALLOWED_IMAGE_MIME_REGEX = /^image\/(jpeg|jpg|png|webp|gif)$/i
+export const ALLOWED_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif"
+
+export function isAllowedImageMime(mime: string): boolean {
+  return ALLOWED_IMAGE_MIME_REGEX.test(mime)
+}
+
 export function estimateDataUrlBytes(dataUrl: string): number {
   const base64 = dataUrl.split(",")[1]
   if (!base64) return dataUrl.length

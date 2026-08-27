@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { motion, AnimatePresence } from "framer-motion"
@@ -26,7 +26,8 @@ import { CameraCapture } from "@/components/camera-capture"
 import { SolutionDisplay } from "@/components/solution-display"
 import { Footer } from "@/components/footer"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS } from "@/lib/solve-limits"
+import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime } from "@/lib/solve-limits"
+import { formatChatError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
   level: NonNullable<EducationLevel>
@@ -55,9 +56,15 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { messages, sendMessage, status, setMessages, error, clearError } = useChat({
+  const { messages, sendMessage, status, setMessages, error, clearError, stop } = useChat({
     transport: new DefaultChatTransport({ api: "/api/solve" }),
   })
+
+  useEffect(() => {
+    return () => {
+      stop()
+    }
+  }, [stop])
 
   const isLoading = status === "streaming" || status === "submitted"
 
@@ -70,11 +77,19 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     if (!file.type.startsWith("image/")) {
       setUploadError("Hanya file gambar yang didukung.")
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return
+    }
+
+    if (!isAllowedImageMime(file.type)) {
+      setUploadError("Format gambar harus JPEG, PNG, WebP, atau GIF.")
+      if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
 
     if (file.size > MAX_IMAGE_BYTES) {
       setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
+      if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
 
@@ -85,6 +100,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     }
     reader.onerror = () => {
       setUploadError("Gagal membaca file gambar.")
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
     reader.readAsDataURL(file)
   }, [clearError])
@@ -131,8 +147,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     
     if (imagePreview) {
       // Extract mime type from base64 data URL
-      const mimeMatch = imagePreview.match(/^data:(image\/[a-zA-Z]+);base64,/)
+      const mimeMatch = imagePreview.match(/^data:(image\/[^;]+);base64,/)
       const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg"
+      if (!isAllowedImageMime(mimeType)) {
+        setUploadError("Format gambar harus JPEG, PNG, WebP, atau GIF.")
+        return
+      }
       
       parts.push({ type: "text", text: assembledText })
       parts.push({ type: "file", mediaType: mimeType, url: imagePreview })
@@ -144,6 +164,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [isLoading, level, textInput, imagePreview, sendMessage])
 
   const handleReset = useCallback(() => {
+    stop()
     setTextInput("")
     setImagePreview(null)
     setInputMode(null)
@@ -151,7 +172,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     clearError()
     setMessages([])
     if (fileInputRef.current) fileInputRef.current.value = ""
-  }, [setMessages, clearError])
+  }, [setMessages, clearError, stop])
 
   const hasSolution = messages.some(m => m.role === "assistant")
 
@@ -195,7 +216,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         {(error || uploadError) && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              {uploadError ?? error?.message ?? "Terjadi kesalahan saat memproses soal. Silakan coba lagi."}
+              {uploadError ?? formatChatError(error?.message)}
             </AlertDescription>
           </Alert>
         )}
@@ -396,7 +417,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={ALLOWED_IMAGE_ACCEPT}
                 onChange={handleFileUpload}
                 className="hidden"
               />

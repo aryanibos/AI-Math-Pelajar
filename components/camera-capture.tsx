@@ -14,6 +14,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const startRequestRef = useRef(0)
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
   const [isLoading, setIsLoading] = useState(true)
   const [isVideoReady, setIsVideoReady] = useState(false)
@@ -27,6 +28,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   }, [])
 
   const startCamera = useCallback(async (mode: "user" | "environment" = facingMode) => {
+    const requestId = ++startRequestRef.current
     setIsLoading(true)
     setIsVideoReady(false)
     setError(null)
@@ -43,6 +45,11 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         audio: false,
       })
 
+      if (requestId !== startRequestRef.current) {
+        mediaStream.getTracks().forEach((track) => track.stop())
+        return
+      }
+
       streamRef.current = mediaStream
 
       if (videoRef.current) {
@@ -50,9 +57,12 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         await videoRef.current.play()
       }
     } catch {
+      if (requestId !== startRequestRef.current) return
       setError("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.")
     } finally {
-      setIsLoading(false)
+      if (requestId === startRequestRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [facingMode, stopStream])
 
