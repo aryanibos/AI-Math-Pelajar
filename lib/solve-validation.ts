@@ -5,6 +5,7 @@ import {
   MAX_IMAGE_BYTES,
   MAX_MESSAGES,
   MAX_TEXT_CHARS,
+  normalizeImageMime,
 } from "./solve-limits"
 
 const dataUrlImageSchema = z
@@ -29,11 +30,6 @@ const textPartSchema = z.object({
     ),
 })
 
-function normalizeImageMime(mime: string): string {
-  const lower = mime.toLowerCase()
-  return lower === "image/jpg" ? "image/jpeg" : lower
-}
-
 const filePartSchema = z
   .object({
     type: z.literal("file"),
@@ -48,6 +44,10 @@ const filePartSchema = z
     },
     { message: "mediaType must match the image data URL" },
   )
+  .transform((part) => ({
+    ...part,
+    mediaType: normalizeImageMime(part.mediaType),
+  }))
 
 const messagePartSchema = z.union([textPartSchema, filePartSchema])
 

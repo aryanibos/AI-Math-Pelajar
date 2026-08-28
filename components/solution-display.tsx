@@ -3,7 +3,7 @@
 import type { UIMessage } from "ai"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, CheckCircle, FileText, Sparkles } from "lucide-react"
+import { Loader2, CheckCircle, FileText, Sparkles, AlertTriangle } from "lucide-react"
 import type { EducationLevel } from "@/app/page"
 import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
@@ -75,6 +75,8 @@ export function SolutionDisplay({
 
   const solutionText = getAssistantText()
   const hasEmptySolution = !isLoading && !solutionText && !!assistantMessage
+  const isTruncated =
+    (assistantMessage?.metadata as { truncated?: boolean } | undefined)?.truncated === true
 
   return (
     <div className="space-y-6">
@@ -114,6 +116,11 @@ export function SolutionDisplay({
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 <span style={{ fontFamily: 'var(--font-display)' }}>Sedang Mengerjakan...</span>
               </>
+            ) : isTruncated ? (
+              <>
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                <span style={{ fontFamily: 'var(--font-display)' }}>Penyelesaian (Terpotong)</span>
+              </>
             ) : (
               <>
                 <CheckCircle className="h-5 w-5 text-secondary" />
@@ -147,6 +154,12 @@ export function SolutionDisplay({
               animate={{ opacity: 1 }}
               className="prose prose-slate dark:prose-invert max-w-none"
             >
+              {isTruncated && (
+                <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+                  Jawaban mungkin terpotong karena terlalu panjang. Coba pecah soal menjadi
+                  bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian.
+                </p>
+              )}
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex]}

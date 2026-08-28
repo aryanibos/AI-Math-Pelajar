@@ -8,6 +8,11 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 export const ALLOWED_IMAGE_MIME_REGEX = /^image\/(jpeg|jpg|png|webp|gif)$/i
 export const ALLOWED_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif"
 
+export function normalizeImageMime(mime: string): string {
+  const lower = mime.toLowerCase()
+  return lower === "image/jpg" ? "image/jpeg" : lower
+}
+
 export function isAllowedImageMime(mime: string): boolean {
   return ALLOWED_IMAGE_MIME_REGEX.test(mime)
 }

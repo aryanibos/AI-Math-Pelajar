@@ -25,7 +25,7 @@ import { CameraCapture } from "@/components/camera-capture"
 import { SolutionDisplay } from "@/components/solution-display"
 import { Footer } from "@/components/footer"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes } from "@/lib/solve-limits"
+import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime } from "@/lib/solve-limits"
 import { formatChatError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
@@ -171,7 +171,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (imagePreview) {
       // Extract mime type from base64 data URL
       const mimeMatch = imagePreview.match(/^data:(image\/[^;]+);base64,/)
-      const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg"
+      const mimeType = normalizeImageMime(mimeMatch ? mimeMatch[1] : "image/jpeg")
       if (!isAllowedImageMime(mimeType)) {
         setUploadError("Format gambar harus JPEG, PNG, WebP, atau GIF.")
         submittingRef.current = false

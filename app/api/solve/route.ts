@@ -110,6 +110,11 @@ export async function POST(req: Request) {
     })
 
     return result.toUIMessageStreamResponse({
+      messageMetadata: ({ part }) => {
+        if (part.type === "finish" && part.finishReason === "length") {
+          return { truncated: true }
+        }
+      },
       onError: (error) => {
         console.error("Solve API stream error:", error)
         return JSON.stringify({

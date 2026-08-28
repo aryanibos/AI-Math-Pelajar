@@ -3,6 +3,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Terlalu banyak permintaan. Silakan coba lagi nanti.",
   "Request body too large": "Ukuran permintaan terlalu besar.",
   "Invalid JSON body": "Permintaan tidak valid.",
+  "Invalid Content-Length header":
+    "Permintaan tidak valid (header Content-Length).",
   "Invalid request": "Permintaan tidak valid. Periksa soal atau gambar Anda.",
   "AI service unavailable. Please try again later.":
     "Layanan AI sedang tidak tersedia. Silakan coba lagi nanti.",
