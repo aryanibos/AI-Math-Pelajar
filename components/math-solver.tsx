@@ -202,7 +202,24 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }, [setMessages, clearError, stop])
 
-  const hasSolution = messages.some(m => m.role === "assistant")
+  const hasAssistantContent = messages.some(
+    (m) =>
+      m.role === "assistant" &&
+      m.parts.some(
+        (p) => p.type === "text" && typeof p.text === "string" && p.text.trim().length > 0,
+      ),
+  )
+
+  // Keep input UI when stream fails before any assistant text arrives.
+  const hasSolution =
+    hasAssistantContent || (isLoading && messages.some((m) => m.role === "assistant"))
+
+  useEffect(() => {
+    if (status !== "error" || !error || hasAssistantContent) return
+    if (messages.some((m) => m.role === "assistant")) {
+      setMessages(messages.filter((m) => m.role !== "assistant"))
+    }
+  }, [status, error, hasAssistantContent, messages, setMessages])
 
   return (
     <div className="min-h-screen bg-background">
