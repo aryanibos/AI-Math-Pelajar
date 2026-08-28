@@ -8,9 +8,24 @@ import {
   normalizeImageMime,
 } from "./solve-limits"
 
+const DATA_URL_IMAGE_RE =
+  /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i
+
+function isValidBase64Payload(payload: string): boolean {
+  if (payload.length % 4 !== 0) return false
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) return false
+  const padding = payload.match(/=+$/)?.[0].length ?? 0
+  if (padding > 2) return false
+  if (padding > 0 && !payload.endsWith("=".repeat(padding))) return false
+  return true
+}
+
 const dataUrlImageSchema = z
   .string()
-  .regex(/^data:image\/(jpeg|jpg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/i, "Invalid image data URL")
+  .regex(DATA_URL_IMAGE_RE, "Invalid image data URL")
+  .refine((url) => isValidBase64Payload(url.split(",")[1] ?? ""), {
+    message: "Invalid image data URL",
+  })
   .refine((url) => estimateDataUrlBytes(url) <= MAX_IMAGE_BYTES, {
     message: `Image must be at most ${MAX_IMAGE_BYTES / (1024 * 1024)}MB`,
   })

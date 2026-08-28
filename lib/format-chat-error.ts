@@ -20,7 +20,14 @@ const DETAIL_MESSAGES: Record<string, string> = {
 }
 
 function translateDetail(detail: string): string {
-  return DETAIL_MESSAGES[detail] ?? detail
+  if (DETAIL_MESSAGES[detail]) return DETAIL_MESSAGES[detail]
+  const textLengthMatch = detail.match(
+    /^Teks soal maksimal ([\d.,]+) karakter\.$/,
+  )
+  if (textLengthMatch) {
+    return `Teks soal maksimal ${textLengthMatch[1]} karakter.`
+  }
+  return detail
 }
 
 function firstDetail(details: Record<string, string[] | undefined> | undefined): string | undefined {

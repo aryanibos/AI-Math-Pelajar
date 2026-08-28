@@ -14,11 +14,11 @@ function enforceMaxBuckets(now: number) {
   if (buckets.size <= MAX_BUCKETS) return
   pruneExpiredBuckets(now)
   if (buckets.size <= MAX_BUCKETS) return
-  // Drop only expired buckets — never evict active rate-limit counters.
-  const expired = [...buckets.entries()]
-    .filter(([, bucket]) => now >= bucket.resetAt)
-    .sort((a, b) => a[1].resetAt - b[1].resetAt)
-  for (const [key] of expired) {
+  // Evict buckets closest to window expiry first (expired, then oldest active).
+  const byExpiry = [...buckets.entries()].sort(
+    (a, b) => a[1].resetAt - b[1].resetAt,
+  )
+  for (const [key] of byExpiry) {
     buckets.delete(key)
     if (buckets.size <= MAX_BUCKETS) return
   }
@@ -48,13 +48,10 @@ export function checkRateLimit(
 }
 
 export function getClientIp(req: Request): string {
-  // Prefer platform-set x-real-ip (e.g. Vercel) over x-forwarded-for,
-  // whose first hop can be spoofed by the client when not behind a trusted proxy.
+  // Only trust platform-set x-real-ip (e.g. Vercel). X-Forwarded-For is
+  // client-spoofable when not behind a trusted proxy that overwrites it.
   const realIp = req.headers.get("x-real-ip")?.trim()
   if (realIp) return realIp
-
-  const forwarded = req.headers.get("x-forwarded-for")
-  if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown"
 
   return "unknown"
 }
