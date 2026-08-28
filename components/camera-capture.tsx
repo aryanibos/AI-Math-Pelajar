@@ -124,6 +124,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
       stopStream()
       onCapture(imageData)
+    } else {
+      setError("Gagal menangkap gambar. Coba lagi.")
     }
   }, [onCapture, stopStream])
 

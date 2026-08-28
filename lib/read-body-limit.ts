@@ -2,15 +2,21 @@
  * Read a request body up to maxBytes without buffering excess data.
  * Rejects oversized bodies even when Content-Length is missing or wrong.
  */
+export type BodyReadFailureReason = "invalid_content_length" | "too_large"
+
 export async function readRequestBodyWithLimit(
   req: Request,
   maxBytes: number,
-): Promise<{ ok: true; text: string } | { ok: false }> {
+): Promise<
+  { ok: true; text: string } | { ok: false; reason: BodyReadFailureReason }
+> {
   const declaredRaw = req.headers.get("content-length")
   if (declaredRaw != null) {
     const declared = Number(declaredRaw)
-    if (!Number.isFinite(declared) || declared < 0) return { ok: false }
-    if (declared > maxBytes) return { ok: false }
+    if (!Number.isFinite(declared) || declared < 0) {
+      return { ok: false, reason: "invalid_content_length" }
+    }
+    if (declared > maxBytes) return { ok: false, reason: "too_large" }
   }
 
   const body = req.body
@@ -27,7 +33,7 @@ export async function readRequestBodyWithLimit(
       total += value.byteLength
       if (total > maxBytes) {
         await reader.cancel()
-        return { ok: false }
+        return { ok: false, reason: "too_large" }
       }
       chunks.push(value)
     }

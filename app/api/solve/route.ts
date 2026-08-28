@@ -70,10 +70,13 @@ export async function POST(req: Request) {
 
   const raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
   if (!raw.ok) {
-    return Response.json(
-      { error: "Request body too large" },
-      { status: 413 },
-    )
+    if (raw.reason === "invalid_content_length") {
+      return Response.json(
+        { error: "Invalid Content-Length header" },
+        { status: 400 },
+      )
+    }
+    return Response.json({ error: "Request body too large" }, { status: 413 })
   }
 
   if (!raw.text) {

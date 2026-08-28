@@ -215,11 +215,20 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     hasAssistantContent || (isLoading && messages.some((m) => m.role === "assistant"))
 
   useEffect(() => {
-    if (status !== "error" || !error || hasAssistantContent) return
-    if (messages.some((m) => m.role === "assistant")) {
+    if (isLoading || hasAssistantContent) return
+    const hasEmptyAssistant = messages.some(
+      (m) =>
+        m.role === "assistant" &&
+        !m.parts.some(
+          (p) => p.type === "text" && typeof p.text === "string" && p.text.trim().length > 0,
+        ),
+    )
+    if (!hasEmptyAssistant) return
+    // Drop orphan assistant messages after stream errors or empty completions.
+    if (status === "error" || status === "ready") {
       setMessages(messages.filter((m) => m.role !== "assistant"))
     }
-  }, [status, error, hasAssistantContent, messages, setMessages])
+  }, [status, hasAssistantContent, isLoading, messages, setMessages])
 
   return (
     <div className="min-h-screen bg-background">
@@ -415,6 +424,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       onClick={() => {
                         setImagePreview(null)
                         setInputMode(null)
+                        setUploadError(null)
+                        clearError()
                         if (fileInputRef.current) fileInputRef.current.value = ""
                       }}
                     >
