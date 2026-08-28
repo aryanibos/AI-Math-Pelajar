@@ -261,7 +261,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         {(error || uploadError) && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              {uploadError ?? formatChatError(error?.message)}
+              {error ? formatChatError(error.message) : uploadError}
             </AlertDescription>
           </Alert>
         )}

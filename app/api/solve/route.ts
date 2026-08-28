@@ -76,6 +76,10 @@ export async function POST(req: Request) {
     )
   }
 
+  if (!raw.text) {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+
   let body: unknown
   try {
     body = JSON.parse(raw.text)

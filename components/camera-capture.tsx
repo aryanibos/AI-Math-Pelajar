@@ -87,7 +87,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     if (!videoRef.current || !canvasRef.current) return
 
     const video = videoRef.current
-    if (video.videoWidth === 0 || video.videoHeight === 0) return
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
+      return
+    }
     const canvas = canvasRef.current
 
     const maxEdge = 1600

@@ -10,11 +10,17 @@ function pruneExpiredBuckets(now: number) {
   }
 }
 
-function enforceMaxBuckets() {
+function enforceMaxBuckets(now: number) {
   if (buckets.size <= MAX_BUCKETS) return
-  const entries = [...buckets.entries()].sort((a, b) => a[1].resetAt - b[1].resetAt)
-  for (const [key] of entries.slice(0, buckets.size - MAX_BUCKETS)) {
+  pruneExpiredBuckets(now)
+  if (buckets.size <= MAX_BUCKETS) return
+  // Drop only expired buckets — never evict active rate-limit counters.
+  const expired = [...buckets.entries()]
+    .filter(([, bucket]) => now >= bucket.resetAt)
+    .sort((a, b) => a[1].resetAt - b[1].resetAt)
+  for (const [key] of expired) {
     buckets.delete(key)
+    if (buckets.size <= MAX_BUCKETS) return
   }
 }
 
@@ -29,7 +35,7 @@ export function checkRateLimit(
 
   if (!bucket || now >= bucket.resetAt) {
     buckets.set(key, { count: 1, resetAt: now + windowMs })
-    enforceMaxBuckets()
+    enforceMaxBuckets(now)
     return { ok: true }
   }
 

@@ -6,8 +6,12 @@ export async function readRequestBodyWithLimit(
   req: Request,
   maxBytes: number,
 ): Promise<{ ok: true; text: string } | { ok: false }> {
-  const declared = Number(req.headers.get("content-length") ?? 0)
-  if (declared > maxBytes) return { ok: false }
+  const declaredRaw = req.headers.get("content-length")
+  if (declaredRaw != null) {
+    const declared = Number(declaredRaw)
+    if (!Number.isFinite(declared) || declared < 0) return { ok: false }
+    if (declared > maxBytes) return { ok: false }
+  }
 
   const body = req.body
   if (!body) return { ok: true, text: "" }
