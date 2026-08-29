@@ -12,14 +12,28 @@
 
 import { execFileSync } from "node:child_process";
 
-const MAX = Number(process.env.MAX_MAIN_COMMITS ?? 5);
+function parsePositiveInt(raw, name, fallback) {
+  if (raw == null || raw === "") return fallback;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0) {
+    console.error(`Invalid ${name}: ${raw}`);
+    process.exit(2);
+  }
+  return n;
+}
+
+const MAX = parsePositiveInt(process.env.MAX_MAIN_COMMITS, "MAX_MAIN_COMMITS", 5);
 const BRANCH_RAW = process.env.GIT_BRANCH ?? "origin/main";
-const PENDING = Number(process.env.PENDING_MAIN_COMMITS ?? 0);
+const PENDING = parsePositiveInt(
+  process.env.PENDING_MAIN_COMMITS,
+  "PENDING_MAIN_COMMITS",
+  0,
+);
 const STOP = process.env.STOP_WHEN_AT_LIMIT === "1";
 const RETRO = process.env.RETROSPECTIVE_CHECK === "1";
 
 const REF_RE = /^[A-Za-z0-9._~^:/-]+$/;
-if (!REF_RE.test(BRANCH_RAW)) {
+if (!REF_RE.test(BRANCH_RAW) || BRANCH_RAW.includes("..")) {
   console.error(`Invalid GIT_BRANCH: ${BRANCH_RAW}`);
   process.exit(2);
 }
@@ -47,11 +61,11 @@ function countTodayFirstParentCommits(branch) {
   const until = end.toISOString();
   const log = git([
     "log",
-    branch,
     "--first-parent",
     `--since=${since}`,
     `--until=${until}`,
     "--format=%H",
+    branch,
   ]);
   return log ? log.split("\n").filter(Boolean).length : 0;
 }
