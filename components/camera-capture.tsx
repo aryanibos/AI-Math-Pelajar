@@ -63,6 +63,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       }
     } catch {
       if (requestId !== startRequestRef.current) return
+      stopStream()
       setError("Tidak dapat mengakses kamera. Pastikan izin kamera sudah diberikan.")
     } finally {
       if (requestId === startRequestRef.current) {
