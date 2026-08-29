@@ -17,7 +17,12 @@ function isValidBase64Payload(payload: string): boolean {
   const padding = payload.match(/=+$/)?.[0].length ?? 0
   if (padding > 2) return false
   if (padding > 0 && !payload.endsWith("=".repeat(padding))) return false
-  return true
+  try {
+    Buffer.from(payload, "base64")
+    return true
+  } catch {
+    return false
+  }
 }
 
 const dataUrlImageSchema = z

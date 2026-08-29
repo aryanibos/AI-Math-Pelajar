@@ -1,7 +1,5 @@
 "use client"
 
-import React from "react"
-
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -90,13 +88,29 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setUploadError(null)
     clearError()
 
-    if (!file.type.startsWith("image/")) {
+    const mimeFromExt = (name: string): string | null => {
+      const ext = name.split(".").pop()?.toLowerCase()
+      const map: Record<string, string> = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        webp: "image/webp",
+        gif: "image/gif",
+      }
+      return ext ? map[ext] ?? null : null
+    }
+
+    const fileMime = file.type
+      ? normalizeImageMime(file.type)
+      : mimeFromExt(file.name)
+
+    if (!fileMime?.startsWith("image/")) {
       setUploadError("Hanya file gambar yang didukung.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
 
-    if (!isAllowedImageMime(file.type)) {
+    if (!isAllowedImageMime(fileMime)) {
       setUploadError("Format gambar harus JPEG, PNG, WebP, atau GIF.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       return
@@ -210,9 +224,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       ),
   )
 
-  // Keep input UI when stream fails before any assistant text arrives.
-  const hasSolution =
-    hasAssistantContent || (isLoading && messages.some((m) => m.role === "assistant"))
+  const hasAssistantMessage = messages.some((m) => m.role === "assistant")
+
+  // Show solution view once an assistant message exists (including empty completions).
+  const hasSolution = hasAssistantMessage
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
@@ -224,8 +239,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         ),
     )
     if (!hasEmptyAssistant) return
-    // Drop orphan assistant messages after stream errors or empty completions.
-    if (status === "error" || status === "ready") {
+    // Drop orphan assistant messages after stream errors (empty completions stay visible).
+    if (status === "error") {
       setMessages(messages.filter((m) => m.role !== "assistant"))
     }
   }, [status, hasAssistantContent, isLoading, messages, setMessages])

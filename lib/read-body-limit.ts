@@ -41,6 +41,13 @@ export async function readRequestBodyWithLimit(
     reader.releaseLock()
   }
 
+  if (declaredRaw != null) {
+    const declared = Number(declaredRaw)
+    if (total !== declared) {
+      return { ok: false, reason: "invalid_content_length" }
+    }
+  }
+
   const merged = new Uint8Array(total)
   let offset = 0
   for (const chunk of chunks) {

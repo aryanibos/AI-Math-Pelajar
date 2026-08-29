@@ -53,21 +53,6 @@ PENYESUAIAN TINGKAT:
 - S1: Gunakan pendekatan formal, bukti matematis jika perlu, dan referensi teori`
 
 export async function POST(req: Request) {
-  const rate = checkRateLimit(
-    `solve:${getClientIp(req)}`,
-    RATE_LIMIT_REQUESTS,
-    RATE_LIMIT_WINDOW_MS,
-  )
-  if (!rate.ok) {
-    return Response.json(
-      { error: "Too many requests. Please try again later." },
-      {
-        status: 429,
-        headers: { "Retry-After": String(rate.retryAfterSec) },
-      },
-    )
-  }
-
   const raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
   if (!raw.ok) {
     if (raw.reason === "invalid_content_length") {
@@ -95,6 +80,21 @@ export async function POST(req: Request) {
     return Response.json(
       { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
+    )
+  }
+
+  const rate = checkRateLimit(
+    `solve:${getClientIp(req)}`,
+    RATE_LIMIT_REQUESTS,
+    RATE_LIMIT_WINDOW_MS,
+  )
+  if (!rate.ok) {
+    return Response.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      },
     )
   }
 
