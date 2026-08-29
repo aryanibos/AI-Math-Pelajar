@@ -241,7 +241,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (!hasEmptyAssistant) return
     // Drop orphan assistant messages after stream errors (empty completions stay visible).
     if (status === "error") {
-      setMessages(messages.filter((m) => m.role !== "assistant"))
+      setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
     }
   }, [status, hasAssistantContent, isLoading, messages, setMessages])
 

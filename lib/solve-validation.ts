@@ -11,24 +11,74 @@ import {
 const DATA_URL_IMAGE_RE =
   /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i
 
-function isValidBase64Payload(payload: string): boolean {
-  if (payload.length % 4 !== 0) return false
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) return false
+function decodeDataUrlPayload(url: string): Buffer | null {
+  const match = url.match(DATA_URL_IMAGE_RE)
+  if (!match) return null
+  const payload = match[2]
+  if (!payload || payload.length % 4 !== 0) return null
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) return null
   const padding = payload.match(/=+$/)?.[0].length ?? 0
-  if (padding > 2) return false
-  if (padding > 0 && !payload.endsWith("=".repeat(padding))) return false
+  if (padding > 2) return null
+  if (padding > 0 && !payload.endsWith("=".repeat(padding))) return null
   try {
-    Buffer.from(payload, "base64")
-    return true
+    return Buffer.from(payload, "base64")
   } catch {
-    return false
+    return null
   }
+}
+
+function sniffImageMime(buffer: Buffer): string | null {
+  if (buffer.length < 4) return null
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return "image/jpeg"
+  }
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47
+  ) {
+    return "image/png"
+  }
+  if (
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x38
+  ) {
+    return "image/gif"
+  }
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46 &&
+    buffer[3] === 0x46 &&
+    buffer[8] === 0x57 &&
+    buffer[9] === 0x45 &&
+    buffer[10] === 0x42 &&
+    buffer[11] === 0x50
+  ) {
+    return "image/webp"
+  }
+  return null
+}
+
+function isValidImageDataUrl(url: string): boolean {
+  const buffer = decodeDataUrlPayload(url)
+  if (!buffer || buffer.length === 0) return false
+  if (buffer.length > MAX_IMAGE_BYTES) return false
+
+  const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
+  const sniffed = sniffImageMime(buffer)
+  if (!declared || !sniffed) return false
+  return normalizeImageMime(declared) === sniffed
 }
 
 const dataUrlImageSchema = z
   .string()
   .regex(DATA_URL_IMAGE_RE, "Invalid image data URL")
-  .refine((url) => isValidBase64Payload(url.split(",")[1] ?? ""), {
+  .refine((url) => isValidImageDataUrl(url), {
     message: "Invalid image data URL",
   })
   .refine((url) => estimateDataUrlBytes(url) <= MAX_IMAGE_BYTES, {
