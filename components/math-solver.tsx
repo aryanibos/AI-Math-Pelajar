@@ -227,7 +227,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
   // Show solution view once an assistant message exists (including empty completions).
-  const hasSolution = hasAssistantMessage
+  // Skip error state to avoid flashing solution UI before orphan cleanup runs.
+  const hasSolution = hasAssistantMessage && status !== "error"
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
