@@ -160,6 +160,11 @@ export function SolutionDisplay({
                   bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian.
                 </p>
               )}
+              {isLoading ? (
+                <p className="whitespace-pre-wrap text-foreground leading-relaxed">
+                  {solutionText}
+                </p>
+              ) : (
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex]}
@@ -231,6 +236,7 @@ export function SolutionDisplay({
               >
                 {solutionText}
               </ReactMarkdown>
+              )}
             </motion.div>
           )}
         </CardContent>
