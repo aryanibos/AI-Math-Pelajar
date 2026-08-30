@@ -174,7 +174,12 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             autoPlay
             playsInline
             muted
-            onLoadedMetadata={() => setIsVideoReady(true)}
+            onLoadedMetadata={(e) => {
+              const video = e.currentTarget
+              if (video.srcObject === streamRef.current && streamRef.current) {
+                setIsVideoReady(true)
+              }
+            }}
             className={`h-full w-full object-cover ${isLoading || error ? 'invisible' : ''}`}
           />
 
