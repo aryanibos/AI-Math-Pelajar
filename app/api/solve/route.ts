@@ -5,7 +5,7 @@ import {
   RATE_LIMIT_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
 } from "@/lib/solve-limits"
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit"
 import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
 
 export const maxDuration = 60
@@ -83,11 +83,15 @@ export async function POST(req: Request) {
     )
   }
 
-  const rate = checkRateLimit(
-    `solve:${getClientIp(req)}`,
-    RATE_LIMIT_REQUESTS,
-    RATE_LIMIT_WINDOW_MS,
-  )
+  const rateKey = getRateLimitKey(req)
+  if (!rateKey) {
+    return Response.json(
+      { error: "Unable to verify client." },
+      { status: 400 },
+    )
+  }
+
+  const rate = checkRateLimit(rateKey, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_MS)
   if (!rate.ok) {
     return Response.json(
       { error: "Too many requests. Please try again later." },

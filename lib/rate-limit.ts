@@ -47,11 +47,19 @@ export function checkRateLimit(
   return { ok: true }
 }
 
-export function getClientIp(req: Request): string {
+export function getClientIp(req: Request): string | null {
   // Only trust platform-set x-real-ip (e.g. Vercel). X-Forwarded-For is
   // client-spoofable when not behind a trusted proxy that overwrites it.
   const realIp = req.headers.get("x-real-ip")?.trim()
   if (realIp) return realIp
 
-  return "unknown"
+  return null
+}
+
+/** Rate-limit bucket key; null in production when client IP cannot be verified. */
+export function getRateLimitKey(req: Request): string | null {
+  const ip = getClientIp(req)
+  if (ip) return `solve:${ip}`
+  if (process.env.NODE_ENV !== "production") return "solve:dev"
+  return null
 }

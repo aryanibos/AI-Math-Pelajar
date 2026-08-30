@@ -6,6 +6,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   "Invalid Content-Length header":
     "Permintaan tidak valid (header Content-Length).",
   "Invalid request": "Permintaan tidak valid. Periksa soal atau gambar Anda.",
+  "Unable to verify client.":
+    "Permintaan tidak dapat diverifikasi. Silakan coba lagi.",
   "AI service unavailable. Please try again later.":
     "Layanan AI sedang tidak tersedia. Silakan coba lagi nanti.",
 }
