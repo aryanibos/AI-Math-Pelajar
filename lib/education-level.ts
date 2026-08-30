@@ -45,3 +45,28 @@ export function extractUserDisplayText(fullText: string): string {
 export function buildContextPrefix(level: EducationLevel): string {
   return `[Tingkat: ${level}] ${LEVEL_DESCRIPTIONS[level]}${SOAL_SEPARATOR}`
 }
+
+/**
+ * Rebuild user text from validated parts so injected content between the level
+ * tag and Soal: cannot reach the model. Returns null when content is invalid.
+ */
+export function rebuildSanitizedUserText(
+  rawText: string,
+  hasImage: boolean,
+): string | null {
+  const level = extractEducationLevel(rawText)
+  if (!level) return null
+
+  const userContent = extractUserDisplayText(rawText)
+  const prefix = buildContextPrefix(level)
+
+  if (hasImage) {
+    const keterangan = userContent
+      ? `${KETERANGAN_PREFIX}${userContent}`
+      : ""
+    return `${prefix}${IMAGE_SOLVE_PROMPT}${keterangan}`
+  }
+
+  if (!userContent) return null
+  return `${prefix}\n${userContent}`
+}

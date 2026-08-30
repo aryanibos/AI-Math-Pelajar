@@ -2,6 +2,7 @@ import { streamText, convertToModelMessages, UIMessage } from "ai"
 import {
   extractEducationLevel,
   LEVEL_DESCRIPTIONS,
+  rebuildSanitizedUserText,
 } from "@/lib/education-level"
 import { solveRequestSchema } from "@/lib/solve-validation"
 import {
@@ -108,10 +109,32 @@ export async function POST(req: Request) {
 
   const { messages } = parsed.data
 
-  const userTextPart = messages[0].parts.find((p) => p.type === "text")
-  const educationLevel = userTextPart
-    ? extractEducationLevel(userTextPart.text)
-    : null
+  const userMessage = messages[0]
+  const userTextPart = userMessage.parts.find((p) => p.type === "text")
+  const userFilePart = userMessage.parts.find((p) => p.type === "file")
+
+  if (!userTextPart) {
+    return Response.json({ error: "Invalid request" }, { status: 400 })
+  }
+
+  const sanitizedText = rebuildSanitizedUserText(
+    userTextPart.text,
+    Boolean(userFilePart),
+  )
+  if (!sanitizedText) {
+    return Response.json({ error: "Invalid request" }, { status: 400 })
+  }
+
+  const sanitizedMessages: typeof messages = [
+    {
+      ...userMessage,
+      parts: userFilePart
+        ? [{ type: "text", text: sanitizedText }, userFilePart]
+        : [{ type: "text", text: sanitizedText }],
+    },
+  ]
+
+  const educationLevel = extractEducationLevel(sanitizedText)
   const levelSystem =
     educationLevel
       ? `\n\nTINGKAT SISWA SAAT INI: ${educationLevel}\n${LEVEL_DESCRIPTIONS[educationLevel]}\nSesuaikan semua penjelasan dengan tingkat ini — abaikan jika teks soal menyebut tingkat lain.`
@@ -121,7 +144,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: "openai/gpt-4o",
       system: systemPrompt + levelSystem,
-      messages: await convertToModelMessages(messages as UIMessage[]),
+      messages: await convertToModelMessages(sanitizedMessages as UIMessage[]),
       abortSignal: req.signal,
       maxOutputTokens: 4000,
     })
