@@ -19,6 +19,7 @@ const DETAIL_MESSAGES: Record<string, string> = {
     "Format gambar tidak cocok dengan data yang dikirim.",
   "Exactly one text part required": "Teks soal wajib diisi.",
   "At most one image allowed": "Maksimal satu gambar per permintaan.",
+  "Invalid education level": "Tingkat pendidikan tidak valid.",
 }
 
 function translateDetail(detail: string): string {

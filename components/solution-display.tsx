@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, CheckCircle, FileText, Sparkles, AlertTriangle } from "lucide-react"
 import type { EducationLevel } from "@/app/page"
+import { extractUserDisplayText } from "@/lib/education-level"
 import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
@@ -30,14 +31,12 @@ export function SolutionDisplay({
   const userMessage = [...messages].reverse().find(m => m.role === "user")
   const assistantMessage = [...messages].reverse().find(m => m.role === "assistant")
 
-  const userText = userMessage?.parts
-    ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
-    .map(p => p.text)
-    .join("\n")
-    .replace(/^\[Tingkat:.*?\]\s*.*?\n\nSoal:\s*/s, "")
-    .replace(/^Lihat dan analisis gambar soal matematika berikut, lalu selesaikan dengan langkah-langkah yang jelas:\s*/s, "")
-    .replace(/\n\nKeterangan tambahan:\s*/s, "\n")
-    .trim() ?? ""
+  const rawUserText =
+    userMessage?.parts
+      ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text)
+      .join("\n") ?? ""
+  const userText = rawUserText ? extractUserDisplayText(rawUserText) : ""
 
   const userImage = userMessage?.parts
     ?.find((p): p is { type: "file"; mediaType: string; url: string } => p.type === "file")

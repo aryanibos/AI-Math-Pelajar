@@ -23,6 +23,11 @@ import { CameraCapture } from "@/components/camera-capture"
 import { SolutionDisplay } from "@/components/solution-display"
 import { Footer } from "@/components/footer"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  buildContextPrefix,
+  IMAGE_SOLVE_PROMPT,
+  KETERANGAN_PREFIX,
+} from "@/lib/education-level"
 import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime } from "@/lib/solve-limits"
 import { formatChatError } from "@/lib/format-chat-error"
 
@@ -36,13 +41,6 @@ const levelColors = {
   SMP: "bg-blue-500",
   "SMA/SMK": "bg-amber-500",
   S1: "bg-rose-500",
-}
-
-const levelDescriptions = {
-  SD: "Matematika dasar: penjumlahan, pengurangan, perkalian, pembagian, pecahan, geometri dasar",
-  SMP: "Aljabar dasar, geometri, statistika, persamaan linear, teorema Pythagoras",
-  "SMA/SMK": "Trigonometri, logaritma, limit, turunan, integral, matriks, vektor",
-  S1: "Kalkulus lanjut, aljabar linear, persamaan diferensial, statistika matematika",
 }
 
 export function MathSolver({ level, onBack }: MathSolverProps) {
@@ -162,11 +160,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     clearError()
 
     const trimmedText = textInput.trim()
-    const contextText = `[Tingkat: ${level}] ${levelDescriptions[level]}\n\nSoal:`
+    const contextText = buildContextPrefix(level)
 
     let assembledText = ""
     if (imagePreview) {
-      assembledText = `${contextText}\nLihat dan analisis gambar soal matematika berikut, lalu selesaikan dengan langkah-langkah yang jelas:${trimmedText ? `\n\nKeterangan tambahan: ${trimmedText}` : ""}`
+      assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${trimmedText ? `${KETERANGAN_PREFIX}${trimmedText}` : ""}`
     } else if (trimmedText) {
       assembledText = `${contextText}\n${trimmedText}`
     } else {

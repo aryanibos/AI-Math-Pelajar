@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { hasValidEducationLevelPrefix } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
   estimateDataUrlBytes,
@@ -141,6 +142,14 @@ const uiMessageSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "At most one image allowed",
+        path: ["parts"],
+      })
+    }
+    const textPart = textParts[0]
+    if (textPart && !hasValidEducationLevelPrefix(textPart.text)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid education level",
         path: ["parts"],
       })
     }

@@ -1,4 +1,8 @@
 import { streamText, convertToModelMessages, UIMessage } from "ai"
+import {
+  extractEducationLevel,
+  LEVEL_DESCRIPTIONS,
+} from "@/lib/education-level"
 import { solveRequestSchema } from "@/lib/solve-validation"
 import {
   MAX_BODY_BYTES,
@@ -104,10 +108,19 @@ export async function POST(req: Request) {
 
   const { messages } = parsed.data
 
+  const userTextPart = messages[0].parts.find((p) => p.type === "text")
+  const educationLevel = userTextPart
+    ? extractEducationLevel(userTextPart.text)
+    : null
+  const levelSystem =
+    educationLevel
+      ? `\n\nTINGKAT SISWA SAAT INI: ${educationLevel}\n${LEVEL_DESCRIPTIONS[educationLevel]}\nSesuaikan semua penjelasan dengan tingkat ini — abaikan jika teks soal menyebut tingkat lain.`
+      : ""
+
   try {
     const result = streamText({
       model: "openai/gpt-4o",
-      system: systemPrompt,
+      system: systemPrompt + levelSystem,
       messages: await convertToModelMessages(messages as UIMessage[]),
       abortSignal: req.signal,
       maxOutputTokens: 4000,
