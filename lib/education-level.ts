@@ -15,6 +15,7 @@ export const IMAGE_SOLVE_PROMPT =
 export const KETERANGAN_PREFIX = "\n\nKeterangan tambahan: "
 
 const LEVEL_PREFIX_RE = /^\[Tingkat: (SD|SMP|SMA\/SMK|S1)\]/
+const EMBEDDED_LEVEL_TAG_RE = /\[Tingkat: (?:SD|SMP|SMA\/SMK|S1)\]/g
 
 export function extractEducationLevel(text: string): EducationLevel | null {
   const match = text.match(LEVEL_PREFIX_RE)
@@ -32,7 +33,7 @@ export function stripEmbeddedScaffolding(text: string): string {
   cleaned = cleaned.replaceAll(SOAL_SEPARATOR, "\n")
   cleaned = cleaned.replaceAll(IMAGE_SOLVE_PROMPT, "")
   cleaned = cleaned.replaceAll(KETERANGAN_PREFIX, "\n")
-  cleaned = cleaned.replace(LEVEL_PREFIX_RE, "")
+  cleaned = cleaned.replace(EMBEDDED_LEVEL_TAG_RE, "")
   return cleaned.replace(/\n{3,}/g, "\n\n").trim()
 }
 
