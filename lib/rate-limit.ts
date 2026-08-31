@@ -55,6 +55,12 @@ export function getClientIp(req: Request): string | null {
   const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
   if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
 
+  // Vercel edge overwrites X-Forwarded-For before the function runs.
+  if (process.env.VERCEL === "1") {
+    const forwarded = req.headers.get("x-forwarded-for")?.trim()
+    if (forwarded) return forwarded.split(",")[0]?.trim() || null
+  }
+
   return null
 }
 
