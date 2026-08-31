@@ -224,9 +224,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
-  // Show solution view once an assistant message exists (including empty completions).
-  // Skip error state to avoid flashing solution UI before orphan cleanup runs.
-  const hasSolution = hasAssistantMessage && status !== "error"
+  // Show solution view when assistant has content, or on ready with empty completion.
+  // During streaming with no tokens yet, stay on input view to avoid empty flash.
+  const hasSolution =
+    (hasAssistantContent || (hasAssistantMessage && status === "ready")) &&
+    status !== "error"
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
@@ -252,7 +254,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={onBack}
+            onClick={() => {
+              stop()
+              onBack()
+            }}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
