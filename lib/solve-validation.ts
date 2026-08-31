@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { hasValidEducationLevelPrefix } from "./education-level"
+import { buildContextPrefix, extractEducationLevel } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
   estimateDataUrlBytes,
@@ -146,12 +146,15 @@ const uiMessageSchema = z
       })
     }
     const textPart = textParts[0]
-    if (textPart && !hasValidEducationLevelPrefix(textPart.text)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Invalid education level",
-        path: ["parts"],
-      })
+    if (textPart) {
+      const level = extractEducationLevel(textPart.text)
+      if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid request structure",
+          path: ["parts"],
+        })
+      }
     }
   })
 

@@ -52,7 +52,13 @@ function wibDayBounds(now = new Date()) {
 }
 
 function git(args) {
-  return execFileSync("git", args, { encoding: "utf8" }).trim();
+  try {
+    return execFileSync("git", args, { encoding: "utf8" }).trim();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`git ${args.join(" ")} failed: ${msg}`);
+    process.exit(2);
+  }
 }
 
 function countTodayFirstParentCommits(branch) {
