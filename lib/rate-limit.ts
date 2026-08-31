@@ -48,10 +48,12 @@ export function checkRateLimit(
 }
 
 export function getClientIp(req: Request): string | null {
-  // Only trust platform-set x-real-ip (e.g. Vercel). X-Forwarded-For is
-  // client-spoofable when not behind a trusted proxy that overwrites it.
+  // Trust platform-set headers only (not client-spoofable X-Forwarded-For).
   const realIp = req.headers.get("x-real-ip")?.trim()
   if (realIp) return realIp
+
+  const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
+  if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
 
   return null
 }

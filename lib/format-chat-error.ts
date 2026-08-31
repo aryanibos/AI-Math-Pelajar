@@ -20,6 +20,7 @@ const DETAIL_MESSAGES: Record<string, string> = {
   "Exactly one text part required": "Teks soal wajib diisi.",
   "At most one image allowed": "Maksimal satu gambar per permintaan.",
   "Invalid education level": "Tingkat pendidikan tidak valid.",
+  "Invalid request structure": "Struktur permintaan tidak valid.",
 }
 
 function translateDetail(detail: string): string {
