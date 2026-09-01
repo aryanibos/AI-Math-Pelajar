@@ -30,7 +30,7 @@ export function hasValidEducationLevelPrefix(text: string): boolean {
 /** Remove scaffolding markers a user may embed inside their soal text. */
 export function stripEmbeddedScaffolding(text: string): string {
   let cleaned = text
-  cleaned = cleaned.replaceAll(SOAL_SEPARATOR, "\n")
+  // Do not strip SOAL_SEPARATOR — legitimate multi-part soal may contain "\n\nSoal:\n".
   cleaned = cleaned.replaceAll(IMAGE_SOLVE_PROMPT, "")
   cleaned = cleaned.replaceAll(KETERANGAN_PREFIX, "\n")
   cleaned = cleaned.replace(EMBEDDED_LEVEL_TAG_RE, "")
