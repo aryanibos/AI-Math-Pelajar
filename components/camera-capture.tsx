@@ -58,8 +58,17 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       streamRef.current = mediaStream
 
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream
-        await videoRef.current.play()
+        const video = videoRef.current
+        video.srcObject = mediaStream
+        await video.play()
+        if (
+          requestId === startRequestRef.current &&
+          video.srcObject === streamRef.current &&
+          video.videoWidth > 0 &&
+          video.videoHeight > 0
+        ) {
+          setIsVideoReady(true)
+        }
       }
     } catch {
       if (requestId !== startRequestRef.current) return

@@ -10,18 +10,19 @@ function pruneExpiredBuckets(now: number) {
   }
 }
 
-function enforceMaxBuckets(now: number) {
+function pruneToMaxBuckets(now: number) {
   if (buckets.size <= MAX_BUCKETS) return
   pruneExpiredBuckets(now)
-  if (buckets.size <= MAX_BUCKETS) return
-  // Evict buckets closest to window expiry first (expired, then oldest active).
-  const byExpiry = [...buckets.entries()].sort(
-    (a, b) => a[1].resetAt - b[1].resetAt,
-  )
-  for (const [key] of byExpiry) {
-    buckets.delete(key)
-    if (buckets.size <= MAX_BUCKETS) return
+}
+
+function oldestActiveResetAt(now: number): number {
+  let oldest = now + 60_000
+  for (const bucket of buckets.values()) {
+    if (now < bucket.resetAt && bucket.resetAt < oldest) {
+      oldest = bucket.resetAt
+    }
   }
+  return oldest
 }
 
 export function checkRateLimit(
@@ -34,8 +35,14 @@ export function checkRateLimit(
   const bucket = buckets.get(key)
 
   if (!bucket || now >= bucket.resetAt) {
+    pruneToMaxBuckets(now)
+    if (buckets.size >= MAX_BUCKETS) {
+      return {
+        ok: false,
+        retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
+      }
+    }
     buckets.set(key, { count: 1, resetAt: now + windowMs })
-    enforceMaxBuckets(now)
     return { ok: true }
   }
 

@@ -27,6 +27,7 @@ import {
   buildContextPrefix,
   IMAGE_SOLVE_PROMPT,
   KETERANGAN_PREFIX,
+  stripEmbeddedScaffolding,
 } from "@/lib/education-level"
 import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime } from "@/lib/solve-limits"
 import { formatChatError } from "@/lib/format-chat-error"
@@ -166,6 +167,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (imagePreview) {
       assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${trimmedText ? `${KETERANGAN_PREFIX}${trimmedText}` : ""}`
     } else if (trimmedText) {
+      if (!stripEmbeddedScaffolding(trimmedText)) {
+        setUploadError("Teks soal wajib diisi.")
+        submittingRef.current = false
+        return
+      }
       assembledText = `${contextText}\n${trimmedText}`
     } else {
       submittingRef.current = false

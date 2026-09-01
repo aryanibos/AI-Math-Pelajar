@@ -1,5 +1,9 @@
 import { z } from "zod"
-import { buildContextPrefix, extractEducationLevel } from "./education-level"
+import {
+  buildContextPrefix,
+  extractEducationLevel,
+  rebuildSanitizedUserText,
+} from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
   estimateDataUrlBytes,
@@ -152,6 +156,14 @@ const uiMessageSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Invalid request structure",
+          path: ["parts"],
+        })
+      } else if (
+        rebuildSanitizedUserText(textPart.text, fileParts.length === 1) === null
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Exactly one text part required",
           path: ["parts"],
         })
       }
