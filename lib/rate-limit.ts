@@ -59,11 +59,11 @@ export function getClientIp(req: Request): string | null {
   const realIp = req.headers.get("x-real-ip")?.trim()
   if (realIp) return realIp
 
-  const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
-  if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
-
-  // Vercel edge overwrites X-Forwarded-For before the function runs.
+  // Vercel-only headers — trusting these off-platform lets clients spoof IPs and bypass rate limits.
   if (process.env.VERCEL === "1") {
+    const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
+    if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
+
     const forwarded = req.headers.get("x-forwarded-for")?.trim()
     if (forwarded) return forwarded.split(",")[0]?.trim() || null
   }
