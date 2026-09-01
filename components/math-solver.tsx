@@ -29,7 +29,7 @@ import {
   KETERANGAN_PREFIX,
   stripEmbeddedScaffolding,
 } from "@/lib/education-level"
-import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime } from "@/lib/solve-limits"
+import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
 import { formatChatError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
@@ -80,7 +80,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const isLoading = status === "streaming" || status === "submitted"
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -117,6 +117,28 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     if (file.size > MAX_IMAGE_BYTES) {
       setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return
+    }
+
+    let bytes: Uint8Array
+    try {
+      bytes = new Uint8Array(await file.arrayBuffer())
+    } catch {
+      setUploadError("Gagal membaca file gambar.")
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return
+    }
+
+    const sniffed = sniffImageMimeFromBytes(bytes)
+    if (!sniffed || !isAllowedImageMime(sniffed)) {
+      setUploadError("Format gambar tidak valid.")
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return
+    }
+
+    if (normalizeImageMime(fileMime) !== sniffed) {
+      setUploadError("Format gambar tidak cocok dengan tipe file.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
@@ -195,6 +217,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         submittingRef.current = false
         return
       }
+
+      const sniffed = sniffImageMimeFromDataUrl(imagePreview)
+      if (!sniffed || normalizeImageMime(mimeType) !== sniffed) {
+        setUploadError("Format gambar tidak valid.")
+        submittingRef.current = false
+        return
+      }
       
       parts.push({ type: "text", text: assembledText })
       parts.push({ type: "file", mediaType: mimeType, url: imagePreview })
@@ -231,10 +260,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
   // Show solution view when assistant has content, or on ready with empty completion.
-  // During streaming with no tokens yet, stay on input view to avoid empty flash.
+  // Keep partial content visible after stream errors.
   const hasSolution =
-    (hasAssistantContent || (hasAssistantMessage && status === "ready")) &&
-    status !== "error"
+    hasAssistantContent ||
+    (hasAssistantMessage && status === "ready")
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return

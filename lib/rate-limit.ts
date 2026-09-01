@@ -55,7 +55,11 @@ export function checkRateLimit(
 }
 
 export function getClientIp(req: Request): string | null {
-  // Trust platform-set headers only (not client-spoofable X-Forwarded-For).
+  const trustProxy =
+    process.env.VERCEL === "1" || process.env.TRUST_PROXY_HEADERS === "1"
+
+  if (!trustProxy) return null
+
   const realIp = req.headers.get("x-real-ip")?.trim()
   if (realIp) return realIp
 
