@@ -175,3 +175,29 @@ export const solveRequestSchema = z.object({
 })
 
 export type SolveRequest = z.infer<typeof solveRequestSchema>
+
+/** Flatten Zod issues, including nested union branch errors, for API responses. */
+export function zodFieldErrors(error: z.ZodError): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+
+  function collect(issues: z.ZodIssue[], prefix: (string | number)[] = []) {
+    for (const issue of issues) {
+      if (issue.code === "invalid_union" && issue.unionErrors) {
+        for (const unionError of issue.unionErrors) {
+          collect(unionError.issues, prefix)
+        }
+        continue
+      }
+      const path = [...prefix, ...issue.path]
+      const key = path.length > 0 ? path.join(".") : "messages"
+      const messages = out[key] ?? []
+      if (!messages.includes(issue.message)) {
+        messages.push(issue.message)
+      }
+      out[key] = messages
+    }
+  }
+
+  collect(error.issues)
+  return out
+}

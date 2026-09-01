@@ -16,13 +16,13 @@ function pruneToMaxBuckets(now: number) {
 }
 
 function oldestActiveResetAt(now: number): number {
-  let oldest = now + 60_000
+  let oldest = Number.POSITIVE_INFINITY
   for (const bucket of buckets.values()) {
     if (now < bucket.resetAt && bucket.resetAt < oldest) {
       oldest = bucket.resetAt
     }
   }
-  return oldest
+  return oldest === Number.POSITIVE_INFINITY ? now + 60_000 : oldest
 }
 
 export function checkRateLimit(

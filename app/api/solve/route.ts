@@ -4,7 +4,7 @@ import {
   LEVEL_DESCRIPTIONS,
   rebuildSanitizedUserText,
 } from "@/lib/education-level"
-import { solveRequestSchema } from "@/lib/solve-validation"
+import { solveRequestSchema, zodFieldErrors } from "@/lib/solve-validation"
 import {
   MAX_BODY_BYTES,
   RATE_LIMIT_REQUESTS,
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
   const parsed = solveRequestSchema.safeParse(body)
   if (!parsed.success) {
     return Response.json(
-      { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+      { error: "Invalid request", details: zodFieldErrors(parsed.error) },
       { status: 400 },
     )
   }

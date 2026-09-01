@@ -20,6 +20,13 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isVideoReady, setIsVideoReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [captureWarning, setCaptureWarning] = useState<string | null>(null)
+
+  const clearNotReadyError = useCallback(() => {
+    setError((prev) =>
+      prev === "Kamera belum siap. Tunggu sebentar lalu coba lagi." ? null : prev,
+    )
+  }, [])
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -37,6 +44,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     setIsLoading(true)
     setIsVideoReady(false)
     setError(null)
+    setCaptureWarning(null)
 
     try {
       stopStream()
@@ -68,6 +76,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           video.videoHeight > 0
         ) {
           setIsVideoReady(true)
+          clearNotReadyError()
         }
       }
     } catch {
@@ -79,7 +88,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         setIsLoading(false)
       }
     }
-  }, [facingMode, stopStream])
+  }, [facingMode, stopStream, clearNotReadyError])
 
   useEffect(() => {
     startCamera(facingMode)
@@ -95,6 +104,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
   const handleCapture = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return
+
+    setCaptureWarning(null)
 
     const video = videoRef.current
     if (video.videoWidth === 0 || video.videoHeight === 0) {
@@ -125,7 +136,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       }
 
       if (estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
-        setError(
+        setCaptureWarning(
           `Gambar masih terlalu besar (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba ambil foto lebih dekat atau kurangi detail.`,
         )
         return
@@ -187,12 +198,19 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               const video = e.currentTarget
               if (video.srcObject === streamRef.current && streamRef.current) {
                 setIsVideoReady(true)
+                clearNotReadyError()
               }
             }}
             className={`h-full w-full object-cover ${isLoading || error ? 'invisible' : ''}`}
           />
 
           <canvas ref={canvasRef} className="hidden" />
+
+          {captureWarning && !error && (
+            <div className="absolute inset-x-0 bottom-0 bg-destructive/90 px-4 py-2 text-center text-sm text-destructive-foreground">
+              {captureWarning}
+            </div>
+          )}
         </div>
 
         {/* Controls */}
