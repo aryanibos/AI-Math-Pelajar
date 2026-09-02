@@ -91,9 +91,13 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   }, [facingMode, stopStream, clearNotReadyError])
 
   useEffect(() => {
-    startCamera(facingMode)
+    // Defer camera init out of the effect sync path (react-hooks/set-state-in-effect).
+    const timer = window.setTimeout(() => {
+      void startCamera(facingMode)
+    }, 0)
 
     return () => {
+      window.clearTimeout(timer)
       stopStream()
     }
   }, [facingMode, startCamera, stopStream])
