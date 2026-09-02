@@ -115,6 +115,7 @@ const uiMessageSchema = z
     }
     const textPart = textParts[0]
     if (textPart) {
+      const hasImage = fileParts.length === 1
       const level = extractEducationLevel(textPart.text)
       if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {
         ctx.addIssue({
@@ -122,14 +123,21 @@ const uiMessageSchema = z
           message: "Invalid request structure",
           path: ["parts"],
         })
-      } else if (
-        rebuildSanitizedUserText(textPart.text, fileParts.length === 1) === null
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Exactly one text part required",
-          path: ["parts"],
-        })
+      } else {
+        const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
+        if (sanitized === null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Exactly one text part required",
+            path: ["parts"],
+          })
+        } else if (textPart.text !== sanitized) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Invalid request structure",
+            path: ["parts"],
+          })
+        }
       }
     }
   })

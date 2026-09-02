@@ -68,7 +68,14 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       if (videoRef.current) {
         const video = videoRef.current
         video.srcObject = mediaStream
-        await video.play()
+        try {
+          await video.play()
+        } catch {
+          if (requestId !== startRequestRef.current) return
+          stopStream()
+          setError("Gagal memutar video kamera. Coba muat ulang halaman.")
+          return
+        }
         if (
           requestId === startRequestRef.current &&
           video.srcObject === streamRef.current &&
