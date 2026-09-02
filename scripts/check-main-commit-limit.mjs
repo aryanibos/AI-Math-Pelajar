@@ -61,20 +61,33 @@ function git(args) {
   }
 }
 
+/** Refresh origin/main when counting remote refs (best-effort). */
+function tryFetchOriginMain() {
+  const ref = BRANCH_RAW.replace(/^origin\//, "");
+  if (ref !== "main") return;
+  try {
+    execFileSync("git", ["fetch", "origin", "main", "--quiet"], {
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+  } catch {
+    console.error("Warning: git fetch origin main failed; using local refs.");
+  }
+}
+
 function countTodayFirstParentCommits(branch) {
   const { start, end } = wibDayBounds();
-  const since = start.toISOString();
-  const until = end.toISOString();
-  const log = git([
-    "log",
-    "--first-parent",
-    `--since=${since}`,
-    `--until=${until}`,
-    "--format=%H",
-    branch,
-  ]);
-  return log ? log.split("\n").filter(Boolean).length : 0;
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+  const log = git(["log", "--first-parent", "--format=%cI", branch]);
+  if (!log) return 0;
+  return log.split("\n").filter(Boolean).filter((iso) => {
+    const t = new Date(iso).getTime();
+    return t >= startMs && t < endMs;
+  }).length;
 }
+
+tryFetchOriginMain();
 
 const branch = BRANCH_RAW;
 const todayCount = countTodayFirstParentCommits(branch);
