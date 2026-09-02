@@ -166,7 +166,7 @@ export function SolutionDisplay({
               ) : (
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
+                rehypePlugins={[[rehypeKatex, { trust: false }]]}
                 components={{
                   h1: ({ children }) => (
                     <h1 className="mb-4 text-xl font-bold text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
