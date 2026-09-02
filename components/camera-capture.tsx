@@ -125,25 +125,28 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     }
     const canvas = canvasRef.current
 
-    const maxEdge = 1600
-    let { videoWidth: width, videoHeight: height } = video
-    if (width > maxEdge || height > maxEdge) {
-      const scale = maxEdge / Math.max(width, height)
-      width = Math.round(width * scale)
-      height = Math.round(height * scale)
-    }
-
-    canvas.width = width
-    canvas.height = height
-
     const ctx = canvas.getContext("2d")
     if (ctx) {
-      ctx.drawImage(video, 0, 0, width, height)
-
+      const { videoWidth: srcWidth, videoHeight: srcHeight } = video
       let imageData = ""
-      for (let quality = 0.9; quality >= 0.5; quality -= 0.1) {
-        imageData = canvas.toDataURL("image/jpeg", quality)
-        if (estimateDataUrlBytes(imageData) <= MAX_IMAGE_BYTES) break
+
+      outer: for (const maxEdge of [1600, 1200, 960, 720]) {
+        let width = srcWidth
+        let height = srcHeight
+        if (width > maxEdge || height > maxEdge) {
+          const scale = maxEdge / Math.max(width, height)
+          width = Math.round(width * scale)
+          height = Math.round(height * scale)
+        }
+
+        canvas.width = width
+        canvas.height = height
+        ctx.drawImage(video, 0, 0, width, height)
+
+        for (let quality = 0.9; quality >= 0.5; quality -= 0.1) {
+          imageData = canvas.toDataURL("image/jpeg", quality)
+          if (estimateDataUrlBytes(imageData) <= MAX_IMAGE_BYTES) break outer
+        }
       }
 
       if (estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
