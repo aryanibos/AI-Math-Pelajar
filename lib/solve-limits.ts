@@ -19,7 +19,7 @@ export function isAllowedImageMime(mime: string): boolean {
 
 export function estimateDataUrlBytes(dataUrl: string): number {
   const base64 = dataUrl.split(",")[1]
-  if (!base64) return dataUrl.length
+  if (!base64) return 0
   const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0
   return Math.floor((base64.length * 3) / 4) - padding
 }

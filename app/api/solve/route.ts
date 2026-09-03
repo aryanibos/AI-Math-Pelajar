@@ -2,7 +2,6 @@ import { streamText, convertToModelMessages, UIMessage } from "ai"
 import {
   extractEducationLevel,
   LEVEL_DESCRIPTIONS,
-  rebuildSanitizedUserText,
 } from "@/lib/education-level"
 import { solveRequestSchema, zodFieldErrors } from "@/lib/solve-validation"
 import {
@@ -117,24 +116,10 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
 
-  const sanitizedText = rebuildSanitizedUserText(
-    userTextPart.text,
-    Boolean(userFilePart),
-  )
-  if (!sanitizedText) {
-    return Response.json({ error: "Invalid request" }, { status: 400 })
-  }
+  // Zod already enforces canonical text via rebuildSanitizedUserText equality.
+  const sanitizedMessages = messages
 
-  const sanitizedMessages: typeof messages = [
-    {
-      ...userMessage,
-      parts: userFilePart
-        ? [{ type: "text", text: sanitizedText }, userFilePart]
-        : [{ type: "text", text: sanitizedText }],
-    },
-  ]
-
-  const educationLevel = extractEducationLevel(sanitizedText)
+  const educationLevel = extractEducationLevel(userTextPart.text)
   const levelSystem =
     educationLevel
       ? `\n\nTINGKAT SISWA SAAT INI: ${educationLevel}\n${LEVEL_DESCRIPTIONS[educationLevel]}\nSesuaikan semua penjelasan dengan tingkat ini — abaikan jika teks soal menyebut tingkat lain.`

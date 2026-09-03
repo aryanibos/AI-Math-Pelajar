@@ -86,7 +86,15 @@ function countTodayFirstParentCommits(branch) {
   const { start, end } = wibDayBounds();
   const startMs = start.getTime();
   const endMs = end.getTime();
-  const log = git(["log", "--first-parent", "--format=%cI", branch]);
+  // Author-date bound shrinks log volume; committer date still filtered below.
+  const since = new Date(startMs - 24 * 60 * 60 * 1000).toISOString();
+  const log = git([
+    "log",
+    "--first-parent",
+    "--format=%cI",
+    `--since=${since}`,
+    branch,
+  ]);
   if (!log) return 0;
   return log.split("\n").filter(Boolean).filter((iso) => {
     const t = new Date(iso).getTime();

@@ -24,7 +24,21 @@ function pruneToMaxBuckets(now: number) {
       evictKey = key
     }
   }
-  if (evictKey) buckets.delete(evictKey)
+  if (evictKey) {
+    buckets.delete(evictKey)
+    return
+  }
+
+  // Fallback: evict oldest bucket by resetAt (including expired) so new clients aren't denied.
+  let oldestKey: string | null = null
+  let oldestReset = Number.POSITIVE_INFINITY
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt < oldestReset) {
+      oldestReset = bucket.resetAt
+      oldestKey = key
+    }
+  }
+  if (oldestKey) buckets.delete(oldestKey)
 }
 
 function oldestActiveResetAt(now: number): number {

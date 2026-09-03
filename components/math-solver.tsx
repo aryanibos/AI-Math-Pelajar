@@ -238,11 +238,15 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     }
 
     try {
+      // Replace prior user messages on retry so failed submits don't accumulate duplicates.
+      if (status === "error") {
+        setMessages([])
+      }
       await sendMessage({ parts })
     } finally {
       submittingRef.current = false
     }
-  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError])
+  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages])
 
   const handleReset = useCallback(() => {
     stop()
