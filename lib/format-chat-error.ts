@@ -30,7 +30,7 @@ function translateDetail(detail: string): string {
   if (textLengthMatch) {
     return `Teks soal maksimal ${textLengthMatch[1]} karakter.`
   }
-  return detail
+  return "Detail permintaan tidak valid."
 }
 
 function firstDetail(details: Record<string, string[] | undefined> | undefined): string | undefined {

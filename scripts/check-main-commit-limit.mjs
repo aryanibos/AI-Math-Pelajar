@@ -61,9 +61,16 @@ function git(args) {
   }
 }
 
+/** Normalize common main ref forms to `main` for fetch eligibility. */
+function normalizeMainRef(raw) {
+  const withoutOrigin = raw.replace(/^origin\//, "");
+  const withoutHeads = withoutOrigin.replace(/^refs\/heads\//, "");
+  return withoutHeads;
+}
+
 /** Refresh origin/main when counting remote refs (best-effort). */
 function tryFetchOriginMain() {
-  const ref = BRANCH_RAW.replace(/^origin\//, "");
+  const ref = normalizeMainRef(BRANCH_RAW);
   if (ref !== "main") return;
   try {
     execFileSync("git", ["fetch", "origin", "main", "--quiet"], {
