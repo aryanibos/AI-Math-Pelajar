@@ -59,6 +59,8 @@ export function formatChatError(message: string | undefined): string {
       const detail = firstDetail(parsed.details)
       return detail ? `${base} ${detail}` : base
     }
+    const detailOnly = firstDetail(parsed.details)
+    if (detailOnly) return detailOnly
   } catch {
     // Not JSON — fall through.
   }

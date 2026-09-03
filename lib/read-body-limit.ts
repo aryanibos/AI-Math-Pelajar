@@ -13,7 +13,7 @@ export async function readRequestBodyWithLimit(
   const declaredRaw = req.headers.get("content-length")
   if (declaredRaw != null) {
     const declared = Number(declaredRaw)
-    if (!Number.isFinite(declared) || declared < 0) {
+    if (!Number.isInteger(declared) || declared < 0) {
       return { ok: false, reason: "invalid_content_length" }
     }
     if (declared > maxBytes) return { ok: false, reason: "too_large" }

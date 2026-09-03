@@ -11,9 +11,9 @@ function pruneExpiredBuckets(now: number) {
 }
 
 function pruneToMaxBuckets(now: number) {
-  if (buckets.size <= MAX_BUCKETS) return
+  if (buckets.size < MAX_BUCKETS) return
   pruneExpiredBuckets(now)
-  if (buckets.size <= MAX_BUCKETS) return
+  if (buckets.size < MAX_BUCKETS) return
 
   // Evict the active bucket nearest expiry so new clients aren't falsely 429'd at cap.
   let evictKey: string | null = null

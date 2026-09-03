@@ -210,7 +210,24 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             muted
             onLoadedMetadata={(e) => {
               const video = e.currentTarget
-              if (video.srcObject === streamRef.current && streamRef.current) {
+              if (
+                video.srcObject === streamRef.current &&
+                streamRef.current &&
+                video.videoWidth > 0 &&
+                video.videoHeight > 0
+              ) {
+                setIsVideoReady(true)
+                clearNotReadyError()
+              }
+            }}
+            onLoadedData={(e) => {
+              const video = e.currentTarget
+              if (
+                video.srcObject === streamRef.current &&
+                streamRef.current &&
+                video.videoWidth > 0 &&
+                video.videoHeight > 0
+              ) {
                 setIsVideoReady(true)
                 clearNotReadyError()
               }

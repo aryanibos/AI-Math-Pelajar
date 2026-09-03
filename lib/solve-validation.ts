@@ -113,6 +113,13 @@ const uiMessageSchema = z
         path: ["parts"],
       })
     }
+    if (msg.parts.length === 2 && msg.parts[0]?.type !== "text") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid request structure",
+        path: ["parts"],
+      })
+    }
     const textPart = textParts[0]
     if (textPart) {
       const hasImage = fileParts.length === 1
