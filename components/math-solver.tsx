@@ -170,6 +170,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       return
     }
 
+    const sniffed = sniffImageMimeFromDataUrl(imageData)
+    if (!sniffed || !isAllowedImageMime(sniffed)) {
+      setUploadError("Format gambar tidak valid.")
+      return
+    }
+
     setImagePreview(imageData)
     setInputMode("camera")
     setShowCamera(false)
@@ -259,11 +265,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
-  // Show solution view when assistant has content, or on ready with empty completion.
-  // Keep partial content visible after stream errors.
+  // Show solution view once the assistant message exists (incl. loading spinner before first token).
+  // Keep partial content visible after stream errors; empty completions use ready status.
   const hasSolution =
     hasAssistantContent ||
-    (hasAssistantMessage && status === "ready")
+    (hasAssistantMessage && (status === "ready" || isLoading))
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
