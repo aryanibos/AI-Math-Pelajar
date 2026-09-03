@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, CheckCircle, FileText, Sparkles, AlertTriangle } from "lucide-react"
 import type { EducationLevel } from "@/app/page"
-import { extractUserDisplayText } from "@/lib/education-level"
+import { extractEducationLevel, extractUserDisplayText } from "@/lib/education-level"
 import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
@@ -37,6 +37,7 @@ export function SolutionDisplay({
       .map((p) => p.text)
       .join("\n") ?? ""
   const userText = rawUserText ? extractUserDisplayText(rawUserText) : ""
+  const displayLevel = extractEducationLevel(rawUserText) ?? level
 
   const userImage = userMessage?.parts
     ?.find((p): p is { type: "file"; mediaType: string; url: string } => p.type === "file")
@@ -85,8 +86,8 @@ export function SolutionDisplay({
           <CardTitle className="flex items-center gap-2 text-base">
             <FileText className="h-5 w-5 text-primary" />
             <span style={{ fontFamily: 'var(--font-display)' }}>Soal yang Diajukan</span>
-            <span className={`ml-auto text-sm ${levelColors[level]}`}>
-              {level}
+            <span className={`ml-auto text-sm ${levelColors[displayLevel]}`}>
+              {displayLevel}
             </span>
           </CardTitle>
         </CardHeader>

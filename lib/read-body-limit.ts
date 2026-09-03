@@ -20,7 +20,12 @@ export async function readRequestBodyWithLimit(
   }
 
   const body = req.body
-  if (!body) return { ok: true, text: "" }
+  if (!body) {
+    if (declaredRaw != null && Number(declaredRaw) > 0) {
+      return { ok: false, reason: "invalid_content_length" }
+    }
+    return { ok: true, text: "" }
+  }
 
   const reader = body.getReader()
   const chunks: Uint8Array[] = []

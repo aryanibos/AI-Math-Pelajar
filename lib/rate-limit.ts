@@ -13,6 +13,18 @@ function pruneExpiredBuckets(now: number) {
 function pruneToMaxBuckets(now: number) {
   if (buckets.size <= MAX_BUCKETS) return
   pruneExpiredBuckets(now)
+  if (buckets.size <= MAX_BUCKETS) return
+
+  // Evict the active bucket nearest expiry so new clients aren't falsely 429'd at cap.
+  let evictKey: string | null = null
+  let nearestReset = Number.POSITIVE_INFINITY
+  for (const [key, bucket] of buckets) {
+    if (now < bucket.resetAt && bucket.resetAt < nearestReset) {
+      nearestReset = bucket.resetAt
+      evictKey = key
+    }
+  }
+  if (evictKey) buckets.delete(evictKey)
 }
 
 function oldestActiveResetAt(now: number): number {
@@ -62,6 +74,12 @@ export function getClientIp(req: Request): string | null {
 
   const realIp = req.headers.get("x-real-ip")?.trim()
   if (realIp) return realIp
+
+  // TRUST_PROXY_HEADERS implies a trusted reverse proxy that strips client-supplied XFF.
+  if (process.env.TRUST_PROXY_HEADERS === "1") {
+    const forwarded = req.headers.get("x-forwarded-for")?.trim()
+    if (forwarded) return forwarded.split(",")[0]?.trim() || null
+  }
 
   // Vercel-only headers — trusting these off-platform lets clients spoof IPs and bypass rate limits.
   if (process.env.VERCEL === "1") {
