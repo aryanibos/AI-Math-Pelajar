@@ -95,13 +95,10 @@ export function getClientIp(req: Request): string | null {
     if (forwarded) return forwarded.split(",")[0]?.trim() || null
   }
 
-  // Vercel-only headers — trusting these off-platform lets clients spoof IPs and bypass rate limits.
+  // Vercel-only header — do not fall back to x-forwarded-for (client-spoofable).
   if (process.env.VERCEL === "1") {
     const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
     if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
-
-    const forwarded = req.headers.get("x-forwarded-for")?.trim()
-    if (forwarded) return forwarded.split(",")[0]?.trim() || null
   }
 
   return null

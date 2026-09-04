@@ -552,6 +552,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 messages={messages} 
                 isLoading={isLoading}
                 level={level}
+                streamErrorMessage={
+                  error && hasAssistantContent
+                    ? formatChatError(error.message)
+                    : null
+                }
               />
             </motion.div>
           )}

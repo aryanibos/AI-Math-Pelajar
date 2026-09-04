@@ -2,6 +2,7 @@ import { streamText, convertToModelMessages, UIMessage } from "ai"
 import {
   extractEducationLevel,
   LEVEL_DESCRIPTIONS,
+  rebuildSanitizedUserText,
 } from "@/lib/education-level"
 import { solveRequestSchema, zodFieldErrors } from "@/lib/solve-validation"
 import {
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
   }
 
   if (!raw.text) {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    return Response.json({ error: "Empty request body" }, { status: 400 })
   }
 
   let body: unknown
@@ -116,8 +117,20 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
 
-  // Zod already enforces canonical text via rebuildSanitizedUserText equality.
-  const sanitizedMessages = messages
+  const hasImage = !!userFilePart
+  const rebuilt = rebuildSanitizedUserText(userTextPart.text, hasImage)
+  if (!rebuilt) {
+    return Response.json({ error: "Invalid request" }, { status: 400 })
+  }
+
+  const sanitizedMessages = [
+    {
+      ...userMessage,
+      parts: userMessage.parts.map((p) =>
+        p.type === "text" ? { ...p, text: rebuilt } : p,
+      ),
+    },
+  ]
 
   const educationLevel = extractEducationLevel(userTextPart.text)
   const levelSystem =

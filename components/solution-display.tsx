@@ -14,6 +14,8 @@ interface SolutionDisplayProps {
   messages: UIMessage[]
   isLoading: boolean
   level: NonNullable<EducationLevel>
+  /** Shown inline when stream failed after partial assistant output. */
+  streamErrorMessage?: string | null
 }
 
 const levelColors = {
@@ -27,6 +29,7 @@ export function SolutionDisplay({
   messages, 
   isLoading, 
   level,
+  streamErrorMessage,
 }: SolutionDisplayProps) {
   const userMessage = [...messages].reverse().find(m => m.role === "user")
   const assistantMessage = [...messages].reverse().find(m => m.role === "assistant")
@@ -154,6 +157,11 @@ export function SolutionDisplay({
               animate={{ opacity: 1 }}
               className="prose prose-slate dark:prose-invert max-w-none"
             >
+              {streamErrorMessage && (
+                <p className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {streamErrorMessage} Jawaban di bawah mungkin tidak lengkap.
+                </p>
+              )}
               {isTruncated && (
                 <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
                   Jawaban mungkin terpotong karena terlalu panjang. Coba pecah soal menjadi
