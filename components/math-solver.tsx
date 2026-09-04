@@ -28,6 +28,7 @@ import {
   IMAGE_SOLVE_PROMPT,
   KETERANGAN_PREFIX,
   stripEmbeddedScaffolding,
+  stripInvisibleChars,
 } from "@/lib/education-level"
 import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
 import { formatChatError } from "@/lib/format-chat-error"
@@ -188,7 +189,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setUploadError(null)
     clearError()
 
-    const trimmedText = textInput.trim()
+    const trimmedText = stripInvisibleChars(textInput).trim()
     const contextText = buildContextPrefix(level)
 
     let assembledText = ""

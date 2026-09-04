@@ -16,6 +16,12 @@ export const KETERANGAN_PREFIX = "\n\nKeterangan tambahan: "
 
 const LEVEL_PREFIX_RE = /^\[Tingkat: (SD|SMP|SMA\/SMK|S1)\]/
 const EMBEDDED_LEVEL_TAG_RE = /\[Tingkat: (?:SD|SMP|SMA\/SMK|S1)\]/g
+/** Zero-width / BOM / soft-hyphen that bypass `.trim()` empty-soal checks. */
+const INVISIBLE_CHAR_RE = /[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g
+
+export function stripInvisibleChars(text: string): string {
+  return text.replace(INVISIBLE_CHAR_RE, "")
+}
 
 export function extractEducationLevel(text: string): EducationLevel | null {
   const match = text.match(LEVEL_PREFIX_RE)
@@ -34,7 +40,7 @@ export function stripEmbeddedScaffolding(text: string): string {
   cleaned = cleaned.replaceAll(IMAGE_SOLVE_PROMPT, "")
   cleaned = cleaned.replaceAll(KETERANGAN_PREFIX, "\n")
   cleaned = cleaned.replace(EMBEDDED_LEVEL_TAG_RE, "")
-  return cleaned.replace(/\n{3,}/g, "\n\n").trim()
+  return stripInvisibleChars(cleaned).replace(/\n{3,}/g, "\n\n").trim()
 }
 
 /** Strip client scaffolding; show only the user's soal / keterangan in the UI. */

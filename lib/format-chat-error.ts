@@ -3,6 +3,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Terlalu banyak permintaan. Silakan coba lagi nanti.",
   "Request body too large": "Ukuran permintaan terlalu besar.",
   "Invalid JSON body": "Permintaan tidak valid.",
+  "Empty request body": "Permintaan kosong. Silakan kirim soal Anda.",
   "Invalid Content-Length header":
     "Permintaan tidak valid (header Content-Length).",
   "Invalid request": "Permintaan tidak valid. Periksa soal atau gambar Anda.",
