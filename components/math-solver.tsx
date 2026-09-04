@@ -203,6 +203,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       }
       assembledText = `${contextText}\n${trimmedText}`
     } else {
+      setUploadError("Teks soal wajib diisi.")
       submittingRef.current = false
       return
     }
@@ -453,7 +454,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   
                   <Button
                     onClick={handleSubmit}
-                    disabled={!textInput.trim() || isLoading}
+                    disabled={!stripInvisibleChars(textInput).trim() || isLoading}
                     className="w-full gap-2"
                     size="lg"
                   >

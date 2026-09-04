@@ -80,25 +80,32 @@ export function checkRateLimit(
   return { ok: true }
 }
 
+/** Undo one quota charge when a request fails before the AI call (validation/body errors). */
+export function refundRateLimit(key: string): void {
+  const bucket = buckets.get(key)
+  if (!bucket || bucket.count <= 0) return
+  bucket.count -= 1
+}
+
 export function getClientIp(req: Request): string | null {
   const trustProxy =
     process.env.VERCEL === "1" || process.env.TRUST_PROXY_HEADERS === "1"
 
   if (!trustProxy) return null
 
-  const realIp = req.headers.get("x-real-ip")?.trim()
-  if (realIp) return realIp
-
-  // TRUST_PROXY_HEADERS implies a trusted reverse proxy that strips client-supplied XFF.
-  if (process.env.TRUST_PROXY_HEADERS === "1") {
-    const forwarded = req.headers.get("x-forwarded-for")?.trim()
-    if (forwarded) return forwarded.split(",")[0]?.trim() || null
-  }
-
   // Vercel-only header — do not fall back to x-forwarded-for (client-spoofable).
   if (process.env.VERCEL === "1") {
     const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
     if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
+    return null
+  }
+
+  // TRUST_PROXY_HEADERS: prefer XFF first hop (proxy-appended), then x-real-ip.
+  if (process.env.TRUST_PROXY_HEADERS === "1") {
+    const forwarded = req.headers.get("x-forwarded-for")?.trim()
+    if (forwarded) return forwarded.split(",")[0]?.trim() || null
+    const realIp = req.headers.get("x-real-ip")?.trim()
+    if (realIp) return realIp
   }
 
   return null

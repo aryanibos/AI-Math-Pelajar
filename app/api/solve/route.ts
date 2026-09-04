@@ -10,7 +10,7 @@ import {
   RATE_LIMIT_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
 } from "@/lib/solve-limits"
-import { checkRateLimit, getRateLimitKey } from "@/lib/rate-limit"
+import { checkRateLimit, getRateLimitKey, refundRateLimit } from "@/lib/rate-limit"
 import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
 
 export const maxDuration = 60
@@ -77,8 +77,18 @@ export async function POST(req: Request) {
     )
   }
 
-  const raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
+  let raw
+  try {
+    raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      refundRateLimit(rateKey)
+      return new Response(null, { status: 499 })
+    }
+    throw err
+  }
   if (!raw.ok) {
+    refundRateLimit(rateKey)
     if (raw.reason === "invalid_content_length") {
       return Response.json(
         { error: "Invalid Content-Length header" },
@@ -89,6 +99,7 @@ export async function POST(req: Request) {
   }
 
   if (!raw.text) {
+    refundRateLimit(rateKey)
     return Response.json({ error: "Empty request body" }, { status: 400 })
   }
 
@@ -96,11 +107,13 @@ export async function POST(req: Request) {
   try {
     body = JSON.parse(raw.text)
   } catch {
+    refundRateLimit(rateKey)
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   const parsed = solveRequestSchema.safeParse(body)
   if (!parsed.success) {
+    refundRateLimit(rateKey)
     return Response.json(
       { error: "Invalid request", details: zodFieldErrors(parsed.error) },
       { status: 400 },
@@ -114,12 +127,14 @@ export async function POST(req: Request) {
   const userFilePart = userMessage.parts.find((p) => p.type === "file")
 
   if (!userTextPart) {
+    refundRateLimit(rateKey)
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
 
   const hasImage = !!userFilePart
   const rebuilt = rebuildSanitizedUserText(userTextPart.text, hasImage)
   if (!rebuilt) {
+    refundRateLimit(rateKey)
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
 
