@@ -169,6 +169,7 @@ export async function POST(req: Request) {
         }
       },
       onError: (error) => {
+        refundRateLimit(rateKey)
         console.error("Solve API stream error:", error)
         return JSON.stringify({
           error: "AI service unavailable. Please try again later.",
@@ -176,6 +177,7 @@ export async function POST(req: Request) {
       },
     })
   } catch (err) {
+    refundRateLimit(rateKey)
     console.error("Solve API error:", err)
     return Response.json(
       { error: "AI service unavailable. Please try again later." },

@@ -28,11 +28,19 @@ export async function readRequestBodyWithLimit(
   }
 
   const reader = body.getReader()
+  const signal = req.signal
   const chunks: Uint8Array[] = []
   let total = 0
 
+  function throwIfAborted() {
+    if (!signal?.aborted) return
+    const err = new DOMException("Aborted", "AbortError")
+    throw signal.reason instanceof Error ? signal.reason : err
+  }
+
   try {
     while (true) {
+      throwIfAborted()
       const { done, value } = await reader.read()
       if (done) break
       total += value.byteLength
@@ -42,6 +50,9 @@ export async function readRequestBodyWithLimit(
       }
       chunks.push(value)
     }
+  } catch (err) {
+    await reader.cancel().catch(() => {})
+    throw err
   } finally {
     reader.releaseLock()
   }
