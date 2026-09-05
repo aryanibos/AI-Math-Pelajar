@@ -32,6 +32,15 @@ export function hasValidEducationLevelPrefix(text: string): boolean {
   return extractEducationLevel(text) !== null
 }
 
+/** True when user soal text still embeds API scaffolding markers (prompt-structure injection). */
+export function containsForbiddenSoalMarkers(text: string): boolean {
+  return (
+    text.includes(SOAL_SEPARATOR) ||
+    text.includes(IMAGE_SOLVE_PROMPT) ||
+    text.includes(KETERANGAN_PREFIX)
+  )
+}
+
 /** Remove scaffolding markers a user may embed inside their soal text. */
 export function stripEmbeddedScaffolding(text: string): string {
   let cleaned = text
@@ -73,6 +82,7 @@ export function rebuildSanitizedUserText(
   if (!level) return null
 
   const userContent = stripEmbeddedScaffolding(extractUserDisplayText(rawText))
+  if (containsForbiddenSoalMarkers(userContent)) return null
   const prefix = buildContextPrefix(level)
 
   if (hasImage) {

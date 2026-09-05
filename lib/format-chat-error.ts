@@ -33,6 +33,10 @@ function translateDetail(detail: string): string {
   if (textLengthMatch) {
     return `Teks soal maksimal ${textLengthMatch[1]} karakter.`
   }
+  const imageSizeMatch = detail.match(/^Image must be at most (\d+)MB$/)
+  if (imageSizeMatch) {
+    return `Gambar maksimal ${imageSizeMatch[1]}MB.`
+  }
   return "Detail permintaan tidak valid."
 }
 
