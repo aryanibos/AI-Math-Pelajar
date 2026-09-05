@@ -195,15 +195,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     let assembledText = ""
     if (imagePreview) {
-      if (trimmedText) {
-        const keterangan = stripEmbeddedScaffolding(trimmedText)
-        if (containsForbiddenSoalMarkers(keterangan)) {
-          setUploadError("Keterangan tambahan mengandung format yang tidak diizinkan.")
-          submittingRef.current = false
-          return
-        }
+      const keterangan = trimmedText ? stripEmbeddedScaffolding(trimmedText) : ""
+      if (keterangan && containsForbiddenSoalMarkers(keterangan)) {
+        setUploadError("Keterangan tambahan mengandung format yang tidak diizinkan.")
+        submittingRef.current = false
+        return
       }
-      assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${trimmedText ? `${KETERANGAN_PREFIX}${trimmedText}` : ""}`
+      assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${keterangan ? `${KETERANGAN_PREFIX}${keterangan}` : ""}`
     } else if (trimmedText) {
       const userSoal = stripEmbeddedScaffolding(trimmedText)
       if (!userSoal) {
@@ -216,7 +214,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         submittingRef.current = false
         return
       }
-      assembledText = `${contextText}\n${trimmedText}`
+      assembledText = `${contextText}\n${userSoal}`
     } else {
       setUploadError("Teks soal wajib diisi.")
       submittingRef.current = false
