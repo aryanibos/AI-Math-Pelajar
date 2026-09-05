@@ -25,6 +25,7 @@ import { Footer } from "@/components/footer"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   buildContextPrefix,
+  containsForbiddenSoalMarkers,
   IMAGE_SOLVE_PROMPT,
   KETERANGAN_PREFIX,
   stripEmbeddedScaffolding,
@@ -194,10 +195,24 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     let assembledText = ""
     if (imagePreview) {
+      if (trimmedText) {
+        const keterangan = stripEmbeddedScaffolding(trimmedText)
+        if (containsForbiddenSoalMarkers(keterangan)) {
+          setUploadError("Keterangan tambahan mengandung format yang tidak diizinkan.")
+          submittingRef.current = false
+          return
+        }
+      }
       assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${trimmedText ? `${KETERANGAN_PREFIX}${trimmedText}` : ""}`
     } else if (trimmedText) {
-      if (!stripEmbeddedScaffolding(trimmedText)) {
+      const userSoal = stripEmbeddedScaffolding(trimmedText)
+      if (!userSoal) {
         setUploadError("Teks soal wajib diisi.")
+        submittingRef.current = false
+        return
+      }
+      if (containsForbiddenSoalMarkers(userSoal)) {
+        setUploadError("Teks soal mengandung format yang tidak diizinkan.")
         submittingRef.current = false
         return
       }

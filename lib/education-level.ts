@@ -32,13 +32,9 @@ export function hasValidEducationLevelPrefix(text: string): boolean {
   return extractEducationLevel(text) !== null
 }
 
-/** True when user soal text still embeds API scaffolding markers (prompt-structure injection). */
+/** True when user soal text embeds API prompt markers (not SOAL_SEPARATOR — multi-part soal may use it). */
 export function containsForbiddenSoalMarkers(text: string): boolean {
-  return (
-    text.includes(SOAL_SEPARATOR) ||
-    text.includes(IMAGE_SOLVE_PROMPT) ||
-    text.includes(KETERANGAN_PREFIX)
-  )
+  return text.includes(IMAGE_SOLVE_PROMPT) || text.includes(KETERANGAN_PREFIX)
 }
 
 /** Remove scaffolding markers a user may embed inside their soal text. */

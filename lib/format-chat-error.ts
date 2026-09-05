@@ -17,7 +17,6 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const DETAIL_MESSAGES: Record<string, string> = {
   "Invalid image data URL": "Format gambar tidak valid.",
-  "Image must be at most 5MB": "Gambar maksimal 5MB.",
   "mediaType must match the image data URL":
     "Format gambar tidak cocok dengan data yang dikirim.",
   "Exactly one text part required": "Teks soal wajib diisi.",
