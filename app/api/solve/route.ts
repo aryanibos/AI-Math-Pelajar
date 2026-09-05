@@ -81,8 +81,8 @@ export async function POST(req: Request) {
   try {
     raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
   } catch (err) {
-    refundRateLimit(rateKey)
     if (err instanceof Error && err.name === "AbortError") {
+      refundRateLimit(rateKey)
       return new Response(null, { status: 499 })
     }
     console.error("Solve API body read error:", err)
@@ -92,7 +92,6 @@ export async function POST(req: Request) {
     )
   }
   if (!raw.ok) {
-    refundRateLimit(rateKey)
     if (raw.reason === "invalid_content_length") {
       return Response.json(
         { error: "Invalid Content-Length header" },
@@ -103,7 +102,6 @@ export async function POST(req: Request) {
   }
 
   if (!raw.text) {
-    refundRateLimit(rateKey)
     return Response.json({ error: "Empty request body" }, { status: 400 })
   }
 
@@ -111,13 +109,11 @@ export async function POST(req: Request) {
   try {
     body = JSON.parse(raw.text)
   } catch {
-    refundRateLimit(rateKey)
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   const parsed = solveRequestSchema.safeParse(body)
   if (!parsed.success) {
-    refundRateLimit(rateKey)
     return Response.json(
       { error: "Invalid request", details: zodFieldErrors(parsed.error) },
       { status: 400 },
@@ -131,14 +127,12 @@ export async function POST(req: Request) {
   const userFilePart = userMessage.parts.find((p) => p.type === "file")
 
   if (!userTextPart) {
-    refundRateLimit(rateKey)
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
 
   const hasImage = !!userFilePart
   const rebuilt = rebuildSanitizedUserText(userTextPart.text, hasImage)
   if (!rebuilt) {
-    refundRateLimit(rateKey)
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
 
