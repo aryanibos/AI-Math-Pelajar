@@ -41,6 +41,18 @@ function pruneToMaxBuckets(now: number) {
   if (oldestKey) buckets.delete(oldestKey)
 }
 
+/** Free one slot for a new bucket; returns false only if the map is unexpectedly empty at cap. */
+function ensureBucketCapacity(now: number): boolean {
+  pruneExpiredBuckets(now)
+  pruneToMaxBuckets(now)
+  if (buckets.size < MAX_BUCKETS) return true
+
+  const firstKey = buckets.keys().next().value as string | undefined
+  if (!firstKey) return false
+  buckets.delete(firstKey)
+  return buckets.size < MAX_BUCKETS
+}
+
 function oldestActiveResetAt(now: number): number {
   let oldest = Number.POSITIVE_INFINITY
   for (const bucket of buckets.values()) {
@@ -61,8 +73,7 @@ export function checkRateLimit(
   const bucket = buckets.get(key)
 
   if (!bucket || now >= bucket.resetAt) {
-    pruneToMaxBuckets(now)
-    if (buckets.size >= MAX_BUCKETS) {
+    if (!ensureBucketCapacity(now)) {
       return {
         ok: false,
         retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
