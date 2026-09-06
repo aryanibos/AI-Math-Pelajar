@@ -1,8 +1,11 @@
 import { z } from "zod"
 import {
   buildContextPrefix,
+  containsForbiddenSoalMarkers,
   extractEducationLevel,
+  extractUserDisplayText,
   rebuildSanitizedUserText,
+  stripEmbeddedScaffolding,
 } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
@@ -54,11 +57,15 @@ const dataUrlImageSchema = z
     message: `Image must be at most ${MAX_IMAGE_BYTES / (1024 * 1024)}MB`,
   })
 
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+}
+
 const textPartSchema = z.object({
   type: z.literal("text"),
   text: z
     .string()
-    .transform((s) => s.trim())
+    .transform((s) => normalizeLineEndings(s).trim())
     .pipe(
       z
         .string()
@@ -90,36 +97,49 @@ const filePartSchema = z
 
 const messagePartSchema = z.union([textPartSchema, filePartSchema])
 
-const uiMessageSchema = z
-  .object({
-    // Reject client-supplied assistant/system messages (prompt injection).
-    role: z.literal("user"),
-    parts: z.array(messagePartSchema).min(1).max(2),
-  })
-  .superRefine((msg, ctx) => {
-    const textParts = msg.parts.filter((p) => p.type === "text")
-    const fileParts = msg.parts.filter((p) => p.type === "file")
+/** Cheap structural checks before expensive image base64 decode. */
+const rawPartLoose = z.object({ type: z.string() }).passthrough()
+
+const messagePartsSchema = z
+  .array(rawPartLoose)
+  .min(1)
+  .max(2)
+  .superRefine((parts, ctx) => {
+    const textParts = parts.filter((p) => p.type === "text")
+    const fileParts = parts.filter((p) => p.type === "file")
     if (textParts.length !== 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Exactly one text part required",
-        path: ["parts"],
+        path: [],
       })
     }
     if (fileParts.length > 1) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "At most one image allowed",
-        path: ["parts"],
+        path: [],
       })
     }
-    if (msg.parts.length === 2 && msg.parts[0]?.type !== "text") {
+    if (parts.length === 2 && parts[0]?.type !== "text") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Invalid request structure",
-        path: ["parts"],
+        path: [],
       })
     }
+  })
+  .pipe(z.array(messagePartSchema))
+
+const uiMessageSchema = z
+  .object({
+    // Reject client-supplied assistant/system messages (prompt injection).
+    role: z.literal("user"),
+    parts: messagePartsSchema,
+  })
+  .superRefine((msg, ctx) => {
+    const textParts = msg.parts.filter((p) => p.type === "text")
+    const fileParts = msg.parts.filter((p) => p.type === "file")
     const textPart = textParts[0]
     if (textPart) {
       const hasImage = fileParts.length === 1
@@ -131,19 +151,30 @@ const uiMessageSchema = z
           path: ["parts"],
         })
       } else {
-        const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
-        if (sanitized === null) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Exactly one text part required",
-            path: ["parts"],
-          })
-        } else if (textPart.text !== sanitized) {
+        const userContent = stripEmbeddedScaffolding(
+          extractUserDisplayText(textPart.text),
+        )
+        if (containsForbiddenSoalMarkers(userContent)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Invalid request structure",
             path: ["parts"],
           })
+        } else {
+          const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
+          if (sanitized === null) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Exactly one text part required",
+              path: ["parts"],
+            })
+          } else if (textPart.text !== sanitized) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Invalid request structure",
+              path: ["parts"],
+            })
+          }
         }
       }
     }

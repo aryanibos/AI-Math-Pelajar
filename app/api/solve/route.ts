@@ -151,12 +151,6 @@ export async function POST(req: Request) {
       ? `\n\nTINGKAT SISWA SAAT INI: ${educationLevel}\n${LEVEL_DESCRIPTIONS[educationLevel]}\nSesuaikan semua penjelasan dengan tingkat ini — abaikan jika teks soal menyebut tingkat lain.`
       : ""
 
-  let streamStarted = false
-  const refundIfAbortedBeforeStream = () => {
-    if (!streamStarted) refundRateLimit(rateKey)
-  }
-  req.signal.addEventListener("abort", refundIfAbortedBeforeStream, { once: true })
-
   try {
     const result = streamText({
       model: "openai/gpt-4o",
@@ -166,7 +160,6 @@ export async function POST(req: Request) {
       maxOutputTokens: 4000,
     })
 
-    streamStarted = true
     return result.toUIMessageStreamResponse({
       messageMetadata: ({ part }) => {
         if (part.type === "finish" && part.finishReason === "length") {
@@ -181,7 +174,6 @@ export async function POST(req: Request) {
       },
     })
   } catch (err) {
-    refundRateLimit(rateKey)
     console.error("Solve API error:", err)
     return Response.json(
       { error: "AI service unavailable. Please try again later." },
