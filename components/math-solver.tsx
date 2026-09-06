@@ -52,6 +52,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [showCamera, setShowCamera] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [streamAborted, setStreamAborted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const submittingRef = useRef(false)
 
@@ -79,6 +80,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       stop()
     }
   }, [stop])
+
+  const abortStream = useCallback(() => {
+    if (status === "streaming" || status === "submitted") {
+      setStreamAborted(true)
+    }
+    stop()
+  }, [status, stop])
 
   const isLoading = status === "streaming" || status === "submitted"
 
@@ -253,18 +261,20 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     }
 
     try {
-      // Replace prior user messages on retry so failed submits don't accumulate duplicates.
-      if (status === "error") {
+      setStreamAborted(false)
+      // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
+      if (status === "error" || messages.some((m) => m.role === "assistant")) {
         setMessages([])
       }
       await sendMessage({ parts })
     } finally {
       submittingRef.current = false
     }
-  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages])
+  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages])
 
   const handleReset = useCallback(() => {
-    stop()
+    setStreamAborted(false)
+    abortStream()
     setTextInput("")
     setImagePreview(null)
     setInputMode(null)
@@ -272,7 +282,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     clearError()
     setMessages([])
     if (fileInputRef.current) fileInputRef.current.value = ""
-  }, [setMessages, clearError, stop])
+  }, [setMessages, clearError, abortStream])
 
   const hasAssistantContent = messages.some(
     (m) =>
@@ -315,7 +325,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             variant="ghost"
             size="sm"
             onClick={() => {
-              stop()
+              abortStream()
               onBack()
             }}
             className="gap-2"
@@ -568,9 +578,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 isLoading={isLoading}
                 level={level}
                 streamErrorMessage={
-                  error && hasAssistantContent
-                    ? formatChatError(error.message)
-                    : null
+                  streamAborted && hasAssistantContent
+                    ? "Permintaan dibatalkan."
+                    : error && hasAssistantContent
+                      ? formatChatError(error.message)
+                      : null
                 }
               />
             </motion.div>

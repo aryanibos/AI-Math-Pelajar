@@ -91,7 +91,7 @@ export function checkRateLimit(
   return { ok: true }
 }
 
-/** Undo one quota charge when a request fails before the AI call (validation/body errors). */
+/** Undo one quota charge on client abort, upstream AI failure, or incomplete stream — not on validation/body 4xx. */
 export function refundRateLimit(key: string): void {
   const bucket = buckets.get(key)
   if (!bucket || bucket.count <= 0) return
