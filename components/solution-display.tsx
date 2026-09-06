@@ -72,7 +72,7 @@ export function SolutionDisplay({
     const rawText = assistantMessage.parts
       .filter((p): p is { type: "text"; text: string } => p.type === "text")
       .map(p => p.text)
-      .join("")
+      .join("\n")
     return preprocessLatex(rawText)
   }
 

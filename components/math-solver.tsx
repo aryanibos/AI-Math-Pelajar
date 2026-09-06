@@ -314,8 +314,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         ),
     )
     if (!hasEmptyAssistant) return
-    // Drop orphan assistant messages after stream errors or early abort (empty completions stay visible).
-    if (status === "error" || streamAborted) {
+    // Early abort: clear user + empty assistant so retry starts fresh.
+    if (streamAborted) {
+      setMessages([])
+      return
+    }
+    // Drop orphan assistant messages after stream errors (empty completions stay visible).
+    if (status === "error") {
       setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
     }
   }, [status, streamAborted, hasAssistantContent, isLoading, messages, setMessages])

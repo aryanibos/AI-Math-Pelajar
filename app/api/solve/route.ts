@@ -151,11 +151,11 @@ export async function POST(req: Request) {
       ? `\n\nTINGKAT SISWA SAAT INI: ${educationLevel}\n${LEVEL_DESCRIPTIONS[educationLevel]}\nSesuaikan semua penjelasan dengan tingkat ini — abaikan jika teks soal menyebut tingkat lain.`
       : ""
 
-  let streamFinished = false
-  const refundIfStreamIncomplete = () => {
-    if (!streamFinished) refundRateLimit(rateKey)
+  let streamStarted = false
+  const refundIfAbortedBeforeStream = () => {
+    if (!streamStarted) refundRateLimit(rateKey)
   }
-  req.signal.addEventListener("abort", refundIfStreamIncomplete, { once: true })
+  req.signal.addEventListener("abort", refundIfAbortedBeforeStream, { once: true })
 
   try {
     const result = streamText({
@@ -166,13 +166,11 @@ export async function POST(req: Request) {
       maxOutputTokens: 4000,
     })
 
+    streamStarted = true
     return result.toUIMessageStreamResponse({
       messageMetadata: ({ part }) => {
-        if (part.type === "finish") {
-          streamFinished = true
-          if (part.finishReason === "length") {
-            return { truncated: true }
-          }
+        if (part.type === "finish" && part.finishReason === "length") {
+          return { truncated: true }
         }
       },
       onError: (error) => {
