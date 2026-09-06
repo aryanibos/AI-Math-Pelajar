@@ -261,16 +261,20 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     }
 
     try {
+      const shouldClearHistory =
+        status === "error" ||
+        streamAborted ||
+        messages.some((m) => m.role === "assistant")
       setStreamAborted(false)
       // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
-      if (status === "error" || messages.some((m) => m.role === "assistant")) {
+      if (shouldClearHistory) {
         setMessages([])
       }
       await sendMessage({ parts })
     } finally {
       submittingRef.current = false
     }
-  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages])
+  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages, streamAborted])
 
   const handleReset = useCallback(() => {
     setStreamAborted(false)
@@ -310,11 +314,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         ),
     )
     if (!hasEmptyAssistant) return
-    // Drop orphan assistant messages after stream errors (empty completions stay visible).
-    if (status === "error") {
+    // Drop orphan assistant messages after stream errors or early abort (empty completions stay visible).
+    if (status === "error" || streamAborted) {
       setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
     }
-  }, [status, hasAssistantContent, isLoading, messages, setMessages])
+  }, [status, streamAborted, hasAssistantContent, isLoading, messages, setMessages])
 
   return (
     <div className="min-h-screen bg-background">

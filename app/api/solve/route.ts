@@ -176,7 +176,6 @@ export async function POST(req: Request) {
         }
       },
       onError: (error) => {
-        refundIfStreamIncomplete()
         console.error("Solve API stream error:", error)
         return JSON.stringify({
           error: "AI service unavailable. Please try again later.",
