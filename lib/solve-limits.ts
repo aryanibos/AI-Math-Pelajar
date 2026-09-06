@@ -62,16 +62,20 @@ export function sniffImageMimeFromBytes(buffer: Uint8Array): string | null {
   return null
 }
 
-/** Sniff image MIME from a data URL (client-safe). */
+/** Sniff image MIME from a data URL (client-safe; decodes only magic-byte prefix). */
 export function sniffImageMimeFromDataUrl(dataUrl: string): string | null {
   const comma = dataUrl.indexOf(",")
   if (comma === -1) return null
   const base64 = dataUrl.slice(comma + 1)
-  if (!base64 || base64.length % 4 !== 0) return null
+  if (!base64) return null
+  // 16 bytes of magic fit in ~24 base64 chars — avoid full-image atob on main thread.
+  const prefix = base64.slice(0, 24)
+  const padded = prefix + "=".repeat((4 - (prefix.length % 4)) % 4)
   try {
-    const binary = atob(base64)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    const binary = atob(padded)
+    const len = Math.min(binary.length, 16)
+    const bytes = new Uint8Array(len)
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i)
     return sniffImageMimeFromBytes(bytes)
   } catch {
     return null

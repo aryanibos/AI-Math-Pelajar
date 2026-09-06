@@ -118,6 +118,11 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
     setCaptureWarning(null)
 
+    if (!isVideoReady) {
+      setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
+      return
+    }
+
     const video = videoRef.current
     if (video.videoWidth === 0 || video.videoHeight === 0) {
       setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
@@ -161,7 +166,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     } else {
       setError("Gagal menangkap gambar. Coba lagi.")
     }
-  }, [onCapture, stopStream])
+  }, [onCapture, stopStream, isVideoReady])
 
   const handleClose = useCallback(() => {
     stopStream()

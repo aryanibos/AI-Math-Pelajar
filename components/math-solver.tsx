@@ -84,9 +84,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const abortStream = useCallback(() => {
     if (status === "streaming" || status === "submitted") {
       setStreamAborted(true)
+      clearError()
     }
     stop()
-  }, [status, stop])
+  }, [status, stop, clearError])
 
   const isLoading = status === "streaming" || status === "submitted"
 
