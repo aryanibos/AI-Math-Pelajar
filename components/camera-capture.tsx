@@ -105,6 +105,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
     return () => {
       window.clearTimeout(timer)
+      // Invalidate in-flight getUserMedia so a late resolve cannot leave a live stream.
+      startRequestRef.current += 1
       stopStream()
     }
   }, [facingMode, startCamera, stopStream])
@@ -169,6 +171,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   }, [onCapture, stopStream, isVideoReady])
 
   const handleClose = useCallback(() => {
+    startRequestRef.current += 1
     stopStream()
     onClose()
   }, [stopStream, onClose])
