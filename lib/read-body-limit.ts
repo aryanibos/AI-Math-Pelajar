@@ -35,9 +35,21 @@ export async function readRequestBodyWithLimit(
 
   const reader = body.getReader()
   const signal = req.signal
-  const chunks: Uint8Array[] = []
+  let buffer = new Uint8Array(Math.min(64 * 1024, maxBytes))
   let total = 0
   const deadline = Date.now() + timeoutMs
+
+  function appendChunk(chunk: Uint8Array) {
+    const nextTotal = total + chunk.byteLength
+    if (nextTotal > buffer.byteLength) {
+      const nextSize = Math.min(maxBytes, Math.max(buffer.byteLength * 2, nextTotal))
+      const next = new Uint8Array(nextSize)
+      next.set(buffer.subarray(0, total))
+      buffer = next
+    }
+    buffer.set(chunk, total)
+    total = nextTotal
+  }
 
   async function readChunk(remainingMs: number) {
     let timeoutId: ReturnType<typeof setTimeout> | undefined
@@ -101,7 +113,7 @@ export async function readRequestBodyWithLimit(
         await reader.cancel()
         return { ok: false, reason: "too_large" }
       }
-      chunks.push(value)
+      appendChunk(value)
     }
   } catch (err) {
     await reader.cancel().catch(() => {})
@@ -120,12 +132,5 @@ export async function readRequestBodyWithLimit(
     }
   }
 
-  const merged = new Uint8Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    merged.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-
-  return { ok: true, text: new TextDecoder().decode(merged) }
+  return { ok: true, text: new TextDecoder().decode(buffer.subarray(0, total)) }
 }
