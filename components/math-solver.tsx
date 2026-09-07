@@ -54,6 +54,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [streamAborted, setStreamAborted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileReaderRef = useRef<FileReader | null>(null)
+  const mountedRef = useRef(true)
   const submittingRef = useRef(false)
 
   const transport = useMemo(
@@ -76,7 +78,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   })
 
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
+      fileReaderRef.current?.abort()
+      fileReaderRef.current = null
       stop()
     }
   }, [stop])
@@ -154,8 +160,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       return
     }
 
+    fileReaderRef.current?.abort()
     const reader = new FileReader()
+    fileReaderRef.current = reader
     reader.onload = (event) => {
+      if (!mountedRef.current) return
       const dataUrl = event.target?.result as string
       if (estimateDataUrlBytes(dataUrl) > MAX_IMAGE_BYTES) {
         setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
@@ -166,6 +175,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setInputMode("upload")
     }
     reader.onerror = () => {
+      if (!mountedRef.current) return
+      if (reader.error?.name === "AbortError") return
       setUploadError("Gagal membaca file gambar.")
       if (fileInputRef.current) fileInputRef.current.value = ""
     }

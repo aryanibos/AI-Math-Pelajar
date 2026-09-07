@@ -2,6 +2,8 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 export const MAX_TEXT_CHARS = 10_000
 export const MAX_MESSAGES = 1
 export const MAX_BODY_BYTES = 8 * 1024 * 1024
+export const BODY_READ_TIMEOUT_MS = 15_000
+export const MAX_JSON_DEPTH = 32
 export const RATE_LIMIT_REQUESTS = 15
 export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 
@@ -15,6 +17,33 @@ export function normalizeImageMime(mime: string): string {
 
 export function isAllowedImageMime(mime: string): boolean {
   return ALLOWED_IMAGE_MIME_REGEX.test(mime)
+}
+
+/** Reject deeply nested JSON before parse (DoS guard; string-aware). */
+export function exceedsMaxJsonDepth(raw: string, maxDepth: number): boolean {
+  let depth = 0
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i]
+    if (inString) {
+      if (escaped) escaped = false
+      else if (c === "\\") escaped = true
+      else if (c === '"') inString = false
+      continue
+    }
+    if (c === '"') {
+      inString = true
+      continue
+    }
+    if (c === "{" || c === "[") {
+      depth++
+      if (depth > maxDepth) return true
+    } else if (c === "}" || c === "]") {
+      depth--
+    }
+  }
+  return false
 }
 
 export function estimateDataUrlBytes(dataUrl: string): number {

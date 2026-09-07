@@ -10,46 +10,9 @@ function pruneExpiredBuckets(now: number) {
   }
 }
 
-function pruneToMaxBuckets(now: number) {
-  if (buckets.size < MAX_BUCKETS) return
-  pruneExpiredBuckets(now)
-  if (buckets.size < MAX_BUCKETS) return
-
-  // Evict the active bucket nearest expiry so new clients aren't falsely 429'd at cap.
-  let evictKey: string | null = null
-  let nearestReset = Number.POSITIVE_INFINITY
-  for (const [key, bucket] of buckets) {
-    if (now < bucket.resetAt && bucket.resetAt < nearestReset) {
-      nearestReset = bucket.resetAt
-      evictKey = key
-    }
-  }
-  if (evictKey) {
-    buckets.delete(evictKey)
-    return
-  }
-
-  // Fallback: evict oldest bucket by resetAt (including expired) so new clients aren't denied.
-  let oldestKey: string | null = null
-  let oldestReset = Number.POSITIVE_INFINITY
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt < oldestReset) {
-      oldestReset = bucket.resetAt
-      oldestKey = key
-    }
-  }
-  if (oldestKey) buckets.delete(oldestKey)
-}
-
-/** Free one slot for a new bucket; returns false only if the map is unexpectedly empty at cap. */
+/** Free one slot for a new bucket; returns false when at cap (new keys get 429). */
 function ensureBucketCapacity(now: number): boolean {
   pruneExpiredBuckets(now)
-  pruneToMaxBuckets(now)
-  if (buckets.size < MAX_BUCKETS) return true
-
-  const firstKey = buckets.keys().next().value as string | undefined
-  if (!firstKey) return false
-  buckets.delete(firstKey)
   return buckets.size < MAX_BUCKETS
 }
 

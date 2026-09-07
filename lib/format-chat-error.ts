@@ -8,6 +8,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Permintaan tidak valid (header Content-Length).",
   "Unable to read request body.":
     "Gagal membaca permintaan. Silakan coba lagi.",
+  "Request body read timed out.":
+    "Permintaan terlalu lama. Silakan coba lagi.",
   "Invalid request": "Permintaan tidak valid. Periksa soal atau gambar Anda.",
   "Unable to verify client.":
     "Permintaan tidak dapat diverifikasi. Silakan coba lagi.",

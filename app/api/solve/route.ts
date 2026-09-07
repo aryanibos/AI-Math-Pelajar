@@ -7,8 +7,10 @@ import {
 import { solveRequestSchema, zodFieldErrors } from "@/lib/solve-validation"
 import {
   MAX_BODY_BYTES,
+  MAX_JSON_DEPTH,
   RATE_LIMIT_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
+  exceedsMaxJsonDepth,
 } from "@/lib/solve-limits"
 import { checkRateLimit, getRateLimitKey, refundRateLimit } from "@/lib/rate-limit"
 import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
@@ -98,11 +100,21 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
+    if (raw.reason === "timeout") {
+      return Response.json(
+        { error: "Request body read timed out." },
+        { status: 408 },
+      )
+    }
     return Response.json({ error: "Request body too large" }, { status: 413 })
   }
 
   if (!raw.text) {
     return Response.json({ error: "Empty request body" }, { status: 400 })
+  }
+
+  if (exceedsMaxJsonDepth(raw.text, MAX_JSON_DEPTH)) {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   let body: unknown
