@@ -1,7 +1,10 @@
 type Bucket = { count: number; resetAt: number }
 
 const buckets = new Map<string, Bucket>()
+const refundBuckets = new Map<string, Bucket>()
 const MAX_BUCKETS = 500
+/** Cap body-read abort refunds per key per window to block charge/refund cycling. */
+const MAX_REFUNDS_PER_WINDOW = 3
 
 /** Simple in-memory fixed-window rate limiter (per server instance). */
 function pruneExpiredBuckets(now: number) {
@@ -55,7 +58,20 @@ export function checkRateLimit(
 }
 
 /** Undo one quota charge on client abort during body read only — not after validation, on 4xx, or mid-stream abort. */
-export function refundRateLimit(key: string): void {
+export function refundRateLimit(key: string, windowMs: number): void {
+  const now = Date.now()
+  for (const [refundKey, bucket] of refundBuckets) {
+    if (now >= bucket.resetAt) refundBuckets.delete(refundKey)
+  }
+  const refundBucket = refundBuckets.get(key)
+  if (!refundBucket || now >= refundBucket.resetAt) {
+    refundBuckets.set(key, { count: 1, resetAt: now + windowMs })
+  } else if (refundBucket.count >= MAX_REFUNDS_PER_WINDOW) {
+    return
+  } else {
+    refundBucket.count += 1
+  }
+
   const bucket = buckets.get(key)
   if (!bucket || bucket.count <= 0) return
   bucket.count -= 1

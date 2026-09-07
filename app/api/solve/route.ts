@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
   } catch (err) {
     if (req.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
-      refundRateLimit(rateKey)
+      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
       return new Response(null, { status: 499 })
     }
     console.error("Solve API body read error:", err)
