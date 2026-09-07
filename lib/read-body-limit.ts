@@ -39,23 +39,62 @@ export async function readRequestBodyWithLimit(
   let total = 0
   const deadline = Date.now() + timeoutMs
 
-  function throwIfAborted() {
-    if (!signal?.aborted) return
-    const err = new DOMException("Aborted", "AbortError")
-    throw signal.reason instanceof Error ? signal.reason : err
-  }
+  async function readChunk(remainingMs: number) {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    let abortHandler: (() => void) | undefined
 
-  function throwIfTimedOut() {
-    if (Date.now() <= deadline) return
-    const err = new DOMException("Body read timeout", "TimeoutError")
-    throw err
+    const cleanup = () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
+      if (abortHandler && signal) {
+        signal.removeEventListener("abort", abortHandler)
+      }
+    }
+
+    try {
+      return await Promise.race([
+        reader.read().then((result) => {
+          cleanup()
+          return result
+        }),
+        new Promise<ReadableStreamReadResult<Uint8Array>>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            cleanup()
+            reader.cancel().catch(() => {})
+            reject(new DOMException("Body read timeout", "TimeoutError"))
+          }, remainingMs)
+
+          if (!signal) return
+
+          abortHandler = () => {
+            cleanup()
+            reader.cancel().catch(() => {})
+            const err =
+              signal.reason instanceof Error
+                ? signal.reason
+                : new DOMException("Aborted", "AbortError")
+            reject(err)
+          }
+          if (signal.aborted) {
+            abortHandler()
+            return
+          }
+          signal.addEventListener("abort", abortHandler, { once: true })
+        }),
+      ])
+    } catch (err) {
+      cleanup()
+      throw err
+    }
   }
 
   try {
     while (true) {
-      throwIfAborted()
-      throwIfTimedOut()
-      const { done, value } = await reader.read()
+      const remainingMs = deadline - Date.now()
+      if (remainingMs <= 0) {
+        await reader.cancel().catch(() => {})
+        return { ok: false, reason: "timeout" }
+      }
+      const { done, value } = await readChunk(remainingMs)
       if (done) break
       total += value.byteLength
       if (total > maxBytes) {

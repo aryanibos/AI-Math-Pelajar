@@ -37,9 +37,9 @@ function decodeDataUrlPayload(url: string): Buffer | null {
 }
 
 function isValidImageDataUrl(url: string): boolean {
+  if (estimateDataUrlBytes(url) > MAX_IMAGE_BYTES) return false
   const buffer = decodeDataUrlPayload(url)
   if (!buffer || buffer.length === 0) return false
-  if (buffer.length > MAX_IMAGE_BYTES) return false
 
   const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
   const sniffed = sniffImageMimeFromBytes(buffer)

@@ -59,6 +59,7 @@ export function refundRateLimit(key: string): void {
   const bucket = buckets.get(key)
   if (!bucket || bucket.count <= 0) return
   bucket.count -= 1
+  if (bucket.count === 0) buckets.delete(key)
 }
 
 export function getClientIp(req: Request): string | null {
