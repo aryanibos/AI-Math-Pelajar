@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { flushSync } from "react-dom"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { motion, AnimatePresence } from "framer-motion"
@@ -280,7 +281,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setStreamAborted(false)
       // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
       if (shouldClearHistory) {
-        setMessages([])
+        // Flush empty state before sendMessage so prepareSendMessagesRequest sees fresh history.
+        flushSync(() => setMessages([]))
       }
       await sendMessage({ parts })
     } finally {
