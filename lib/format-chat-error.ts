@@ -15,6 +15,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Permintaan tidak dapat diverifikasi. Silakan coba lagi.",
   "AI service unavailable. Please try again later.":
     "Layanan AI sedang tidak tersedia. Silakan coba lagi nanti.",
+  "Request cancelled.": "Permintaan dibatalkan.",
 }
 
 const DETAIL_MESSAGES: Record<string, string> = {
@@ -24,6 +25,7 @@ const DETAIL_MESSAGES: Record<string, string> = {
   "Exactly one text part required": "Teks soal wajib diisi.",
   "At most one image allowed": "Maksimal satu gambar per permintaan.",
   "Invalid request structure": "Struktur permintaan tidak valid.",
+  "Teks soal wajib diisi.": "Teks soal wajib diisi.",
 }
 
 function translateDetail(detail: string): string {
@@ -50,22 +52,43 @@ function firstDetail(details: Record<string, string[] | undefined> | undefined):
   return undefined
 }
 
+function formatRetryAfter(retryAfterSec: number): string {
+  if (retryAfterSec < 60) {
+    return `Coba lagi dalam ${retryAfterSec} detik.`
+  }
+  const minutes = Math.ceil(retryAfterSec / 60)
+  return `Coba lagi dalam ${minutes} menit.`
+}
+
 export function formatChatError(message: string | undefined): string {
   if (!message) {
     return "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
+  }
+
+  const lower = message.toLowerCase()
+  if (lower.includes("abort") || lower.includes("cancelled")) {
+    return ERROR_MESSAGES["Request cancelled."]
   }
 
   try {
     const parsed = JSON.parse(message) as {
       error?: string
       details?: Record<string, string[] | undefined>
+      retryAfterSec?: number
     }
     if (typeof parsed.error === "string") {
       const base =
         ERROR_MESSAGES[parsed.error] ??
         "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
       const detail = firstDetail(parsed.details)
-      return detail ? `${base} ${detail}` : base
+      const retryHint =
+        typeof parsed.retryAfterSec === "number" && parsed.retryAfterSec > 0
+          ? formatRetryAfter(parsed.retryAfterSec)
+          : null
+      if (detail && retryHint) return `${base} ${detail} ${retryHint}`
+      if (detail) return `${base} ${detail}`
+      if (retryHint) return `${base} ${retryHint}`
+      return base
     }
     const detailOnly = firstDetail(parsed.details)
     if (detailOnly) return detailOnly

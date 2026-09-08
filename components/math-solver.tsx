@@ -63,6 +63,46 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     () =>
       new DefaultChatTransport({
         api: "/api/solve",
+        fetch: async (input, init) => {
+          const response = await fetch(input, init)
+          if (!response.ok) {
+            const text = (await response.text()) || ""
+            if (response.status === 499) {
+              throw new Error(JSON.stringify({ error: "Request cancelled." }))
+            }
+            if (response.status === 429) {
+              const retryAfter = response.headers.get("Retry-After")
+              const retryAfterSec = retryAfter ? Number(retryAfter) : undefined
+              try {
+                const parsed = JSON.parse(text) as { error?: string }
+                throw new Error(
+                  JSON.stringify({
+                    error:
+                      parsed.error ??
+                      "Too many requests. Please try again later.",
+                    retryAfterSec:
+                      retryAfterSec && Number.isFinite(retryAfterSec)
+                        ? retryAfterSec
+                        : undefined,
+                  }),
+                )
+              } catch (err) {
+                if (err instanceof Error && err.message.startsWith("{")) throw err
+                throw new Error(
+                  JSON.stringify({
+                    error: "Too many requests. Please try again later.",
+                    retryAfterSec:
+                      retryAfterSec && Number.isFinite(retryAfterSec)
+                        ? retryAfterSec
+                        : undefined,
+                  }),
+                )
+              }
+            }
+            throw new Error(text || "Failed to fetch the chat response.")
+          }
+          return response
+        },
         // API accepts exactly one user message; filter role to allow retry after errors.
         prepareSendMessagesRequest: ({ messages: msgs, ...rest }) => ({
           body: {

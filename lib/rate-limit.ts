@@ -13,6 +13,12 @@ function pruneExpiredBuckets(now: number) {
   }
 }
 
+function pruneExpiredRefundBuckets(now: number) {
+  for (const [key, bucket] of refundBuckets) {
+    if (now >= bucket.resetAt) refundBuckets.delete(key)
+  }
+}
+
 /** Free one slot for a new bucket; returns false when at cap (new keys get 429). */
 function ensureBucketCapacity(now: number): boolean {
   pruneExpiredBuckets(now)
@@ -36,6 +42,7 @@ export function checkRateLimit(
 ): { ok: true } | { ok: false; retryAfterSec: number } {
   const now = Date.now()
   pruneExpiredBuckets(now)
+  pruneExpiredRefundBuckets(now)
   const bucket = buckets.get(key)
 
   if (!bucket || now >= bucket.resetAt) {
@@ -60,9 +67,7 @@ export function checkRateLimit(
 /** Undo one quota charge on client abort during body read only — not after validation, on 4xx, or mid-stream abort. */
 export function refundRateLimit(key: string, windowMs: number): void {
   const now = Date.now()
-  for (const [refundKey, bucket] of refundBuckets) {
-    if (now >= bucket.resetAt) refundBuckets.delete(refundKey)
-  }
+  pruneExpiredRefundBuckets(now)
 
   const bucket = buckets.get(key)
   if (!bucket || bucket.count <= 0) return
