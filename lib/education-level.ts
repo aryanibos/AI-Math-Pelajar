@@ -52,20 +52,25 @@ export function stripEmbeddedScaffolding(text: string): string {
   return stripInvisibleChars(cleaned).replace(/\n{3,}/g, "\n\n").trim()
 }
 
-/** Strip client scaffolding; show only the user's soal / keterangan in the UI. */
-export function extractUserDisplayText(fullText: string): string {
+/** Extract user soal / keterangan without stripping embedded markers (for validation). */
+export function extractRawUserDisplayText(fullText: string): string {
   const soalIdx = fullText.indexOf(SOAL_SEPARATOR)
-  if (soalIdx === -1) return stripEmbeddedScaffolding(fullText)
+  if (soalIdx === -1) return fullText
 
   let rest = fullText.slice(soalIdx + SOAL_SEPARATOR.length)
   if (rest.startsWith(IMAGE_SOLVE_PROMPT)) {
     rest = rest.slice(IMAGE_SOLVE_PROMPT.length)
     if (rest.startsWith(KETERANGAN_PREFIX)) {
-      return stripEmbeddedScaffolding(rest.slice(KETERANGAN_PREFIX.length))
+      return rest.slice(KETERANGAN_PREFIX.length)
     }
-    return stripEmbeddedScaffolding(rest)
+    return rest
   }
-  return stripEmbeddedScaffolding(rest)
+  return rest
+}
+
+/** Strip client scaffolding; show only the user's soal / keterangan in the UI. */
+export function extractUserDisplayText(fullText: string): string {
+  return stripEmbeddedScaffolding(extractRawUserDisplayText(fullText))
 }
 
 export function buildContextPrefix(level: EducationLevel): string {
@@ -83,8 +88,9 @@ export function rebuildSanitizedUserText(
   const level = extractEducationLevel(rawText)
   if (!level) return null
 
-  const userContent = stripEmbeddedScaffolding(extractUserDisplayText(rawText))
-  if (containsForbiddenSoalMarkers(userContent)) return null
+  const rawUserContent = extractRawUserDisplayText(rawText)
+  if (containsForbiddenSoalMarkers(rawUserContent)) return null
+  const userContent = stripEmbeddedScaffolding(rawUserContent)
   const prefix = buildContextPrefix(level)
 
   if (hasImage) {

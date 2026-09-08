@@ -101,6 +101,7 @@ export async function POST(req: Request) {
       )
     }
     if (raw.reason === "timeout") {
+      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
       return Response.json(
         { error: "Request body read timed out." },
         { status: 408 },
@@ -157,7 +158,7 @@ export async function POST(req: Request) {
     },
   ]
 
-  const educationLevel = extractEducationLevel(userTextPart.text)
+  const educationLevel = extractEducationLevel(rebuilt)
   const levelSystem =
     educationLevel
       ? `\n\nTINGKAT SISWA SAAT INI: ${educationLevel}\n${LEVEL_DESCRIPTIONS[educationLevel]}\nSesuaikan semua penjelasan dengan tingkat ini — abaikan jika teks soal menyebut tingkat lain.`

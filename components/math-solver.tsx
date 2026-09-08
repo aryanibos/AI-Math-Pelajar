@@ -216,22 +216,22 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     let assembledText = ""
     if (imagePreview) {
-      const keterangan = trimmedText ? stripEmbeddedScaffolding(trimmedText) : ""
-      if (keterangan && containsForbiddenSoalMarkers(keterangan)) {
+      if (trimmedText && containsForbiddenSoalMarkers(trimmedText)) {
         setUploadError("Keterangan tambahan mengandung format yang tidak diizinkan.")
         submittingRef.current = false
         return
       }
+      const keterangan = trimmedText ? stripEmbeddedScaffolding(trimmedText) : ""
       assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${keterangan ? `${KETERANGAN_PREFIX}${keterangan}` : ""}`
     } else if (trimmedText) {
-      const userSoal = stripEmbeddedScaffolding(trimmedText)
-      if (!userSoal) {
-        setUploadError("Teks soal wajib diisi.")
+      if (containsForbiddenSoalMarkers(trimmedText)) {
+        setUploadError("Teks soal mengandung format yang tidak diizinkan.")
         submittingRef.current = false
         return
       }
-      if (containsForbiddenSoalMarkers(userSoal)) {
-        setUploadError("Teks soal mengandung format yang tidak diizinkan.")
+      const userSoal = stripEmbeddedScaffolding(trimmedText)
+      if (!userSoal) {
+        setUploadError("Teks soal wajib diisi.")
         submittingRef.current = false
         return
       }

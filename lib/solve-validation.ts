@@ -3,9 +3,8 @@ import {
   buildContextPrefix,
   containsForbiddenSoalMarkers,
   extractEducationLevel,
-  extractUserDisplayText,
+  extractRawUserDisplayText,
   rebuildSanitizedUserText,
-  stripEmbeddedScaffolding,
 } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
@@ -151,10 +150,8 @@ const uiMessageSchema = z
           path: ["parts"],
         })
       } else {
-        const userContent = stripEmbeddedScaffolding(
-          extractUserDisplayText(textPart.text),
-        )
-        if (containsForbiddenSoalMarkers(userContent)) {
+        const rawUserContent = extractRawUserDisplayText(textPart.text)
+        if (containsForbiddenSoalMarkers(rawUserContent)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Invalid request structure",
@@ -165,7 +162,7 @@ const uiMessageSchema = z
           if (sanitized === null) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Exactly one text part required",
+              message: "Teks soal wajib diisi.",
               path: ["parts"],
             })
           } else if (textPart.text !== sanitized) {

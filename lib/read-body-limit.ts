@@ -108,6 +108,7 @@ export async function readRequestBodyWithLimit(
       }
       const { done, value } = await readChunk(remainingMs)
       if (done) break
+      if (!value || value.byteLength === 0) continue
       if (total + value.byteLength > maxBytes) {
         await reader.cancel()
         return { ok: false, reason: "too_large" }
