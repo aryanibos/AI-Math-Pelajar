@@ -63,17 +63,26 @@ export function refundRateLimit(key: string, windowMs: number): void {
   for (const [refundKey, bucket] of refundBuckets) {
     if (now >= bucket.resetAt) refundBuckets.delete(refundKey)
   }
+
+  const bucket = buckets.get(key)
+  if (!bucket || bucket.count <= 0) return
+
+  // Anchor refund cap to the active rate-limit window (not a fresh now + windowMs).
+  const windowResetAt = now < bucket.resetAt ? bucket.resetAt : now + windowMs
+
   const refundBucket = refundBuckets.get(key)
-  if (!refundBucket || now >= refundBucket.resetAt) {
-    refundBuckets.set(key, { count: 1, resetAt: now + windowMs })
+  if (
+    !refundBucket ||
+    now >= refundBucket.resetAt ||
+    refundBucket.resetAt !== windowResetAt
+  ) {
+    refundBuckets.set(key, { count: 1, resetAt: windowResetAt })
   } else if (refundBucket.count >= MAX_REFUNDS_PER_WINDOW) {
     return
   } else {
     refundBucket.count += 1
   }
 
-  const bucket = buckets.get(key)
-  if (!bucket || bucket.count <= 0) return
   bucket.count -= 1
   if (bucket.count === 0) buckets.delete(key)
 }
