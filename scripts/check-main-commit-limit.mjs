@@ -103,11 +103,12 @@ function countTodayFirstParentCommits(branch) {
 tryFetchOriginMain();
 
 const branch = BRANCH_RAW;
+const { label: wibDate } = wibDayBounds();
 const todayCount = countTodayFirstParentCommits(branch);
 const projected = todayCount + PENDING;
 
 console.log(
-  `Main commits today (WIB): ${todayCount}/${MAX}` +
+  `Main commits today (WIB ${wibDate}): ${todayCount}/${MAX}` +
     (PENDING ? ` (+${PENDING} pending → ${projected})` : ""),
 );
 

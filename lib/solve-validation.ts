@@ -190,9 +190,17 @@ export function zodFieldErrors(error: z.ZodError): Record<string, string[]> {
   function collect(issues: z.ZodIssue[], prefix: (string | number)[] = []) {
     for (const issue of issues) {
       if (issue.code === "invalid_union" && issue.unionErrors) {
+        // Report only the closest-matching branch — not every union arm.
+        let best = issue.unionErrors[0]
+        let bestCount = Number.POSITIVE_INFINITY
         for (const unionError of issue.unionErrors) {
-          collect(unionError.issues, prefix)
+          const count = unionError.issues.length
+          if (count < bestCount) {
+            bestCount = count
+            best = unionError
+          }
         }
+        if (best) collect(best.issues, prefix)
         continue
       }
       const path = [...prefix, ...issue.path]
