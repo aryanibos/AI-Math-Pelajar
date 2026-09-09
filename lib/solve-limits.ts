@@ -1,7 +1,14 @@
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+/** Vercel/serverless hard request-body cap (4.5 MB). */
+const PLATFORM_MAX_BODY_BYTES = Math.floor(4.5 * 1024 * 1024)
+
+/**
+ * Max decoded image size. Base64 expands ~4/3 and JSON adds scaffolding,
+ * so 5 MB images cannot fit in a 4.5 MB serverless payload.
+ */
+export const MAX_IMAGE_BYTES = 3 * 1024 * 1024
 export const MAX_TEXT_CHARS = 10_000
 export const MAX_MESSAGES = 1
-export const MAX_BODY_BYTES = 8 * 1024 * 1024
+export const MAX_BODY_BYTES = PLATFORM_MAX_BODY_BYTES
 export const BODY_READ_TIMEOUT_MS = 15_000
 export const MAX_JSON_DEPTH = 32
 export const RATE_LIMIT_REQUESTS = 15
@@ -11,12 +18,12 @@ export const ALLOWED_IMAGE_MIME_REGEX = /^image\/(jpeg|jpg|png|webp|gif)$/i
 export const ALLOWED_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif"
 
 export function normalizeImageMime(mime: string): string {
-  const lower = mime.toLowerCase()
-  return lower === "image/jpg" ? "image/jpeg" : lower
+  const base = mime.split(";", 1)[0].trim().toLowerCase()
+  return base === "image/jpg" ? "image/jpeg" : base
 }
 
 export function isAllowedImageMime(mime: string): boolean {
-  return ALLOWED_IMAGE_MIME_REGEX.test(mime)
+  return ALLOWED_IMAGE_MIME_REGEX.test(normalizeImageMime(mime))
 }
 
 /** Reject deeply nested JSON before parse (DoS guard; string-aware). */
