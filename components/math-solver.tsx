@@ -219,6 +219,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       }
       setImagePreview(dataUrl)
       setInputMode("upload")
+      if (fileInputRef.current) fileInputRef.current.value = ""
     }
     reader.onerror = () => {
       if (!mountedRef.current) return
@@ -338,6 +339,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const handleReset = useCallback(() => {
     setStreamAborted(false)
     abortStream()
+    fileReaderRef.current?.abort()
+    fileReaderRef.current = null
     setTextInput("")
     setImagePreview(null)
     setInputMode(null)
@@ -580,6 +583,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        fileReaderRef.current?.abort()
+                        fileReaderRef.current = null
                         setImagePreview(null)
                         setInputMode(null)
                         setUploadError(null)

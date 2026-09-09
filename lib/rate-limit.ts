@@ -89,7 +89,8 @@ export function refundRateLimit(key: string, windowMs: number): void {
   }
 
   bucket.count -= 1
-  if (bucket.count === 0) buckets.delete(key)
+  // Keep bucket at count: 0 until resetAt — deleting would reset the window anchor
+  // and let charge/refund cycles bypass MAX_REFUNDS_PER_WINDOW and the hourly cap.
 }
 
 export function getClientIp(req: Request): string | null {
