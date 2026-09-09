@@ -99,6 +99,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 )
               }
             }
+            if (response.status === 413) {
+              throw new Error(
+                JSON.stringify({ error: "Request body too large" }),
+              )
+            }
             throw new Error(text || "Failed to fetch the chat response.")
           }
           return response

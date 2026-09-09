@@ -188,6 +188,7 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     console.error("Solve API error:", err)
+    refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
     return Response.json(
       { error: "AI service unavailable. Please try again later." },
       { status: 503 },
