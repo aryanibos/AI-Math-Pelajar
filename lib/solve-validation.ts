@@ -13,35 +13,17 @@ import {
   MAX_MESSAGES,
   MAX_TEXT_CHARS,
   normalizeImageMime,
-  sniffImageMimeFromBytes,
+  sniffImageMimeFromDataUrl,
 } from "./solve-limits"
 
 const DATA_URL_IMAGE_RE =
   /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i
 
-function decodeDataUrlPayload(url: string): Buffer | null {
-  const match = url.match(DATA_URL_IMAGE_RE)
-  if (!match) return null
-  const payload = match[2]
-  if (!payload || payload.length % 4 !== 0) return null
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) return null
-  const padding = payload.match(/=+$/)?.[0].length ?? 0
-  if (padding > 2) return null
-  if (padding > 0 && !payload.endsWith("=".repeat(padding))) return null
-  try {
-    return Buffer.from(payload, "base64")
-  } catch {
-    return null
-  }
-}
-
 function isValidImageDataUrl(url: string): boolean {
   if (estimateDataUrlBytes(url) > MAX_IMAGE_BYTES) return false
-  const buffer = decodeDataUrlPayload(url)
-  if (!buffer || buffer.length === 0) return false
 
   const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
-  const sniffed = sniffImageMimeFromBytes(buffer)
+  const sniffed = sniffImageMimeFromDataUrl(url)
   if (!declared || !sniffed) return false
   return normalizeImageMime(declared) === sniffed
 }
