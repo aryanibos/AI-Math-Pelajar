@@ -21,6 +21,7 @@ const DATA_URL_IMAGE_RE =
 
 /** Shared client/server image data URL validation (strict shape + sniff). */
 export function isValidImageDataUrl(url: string): boolean {
+  if (!DATA_URL_IMAGE_RE.test(url)) return false
   if (estimateDataUrlBytes(url) > MAX_IMAGE_BYTES) return false
 
   const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]

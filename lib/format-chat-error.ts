@@ -94,7 +94,7 @@ export function formatChatError(message: string | undefined): string {
         const retryHint =
           typeof parsed.retryAfterSec === "number" &&
           Number.isFinite(parsed.retryAfterSec) &&
-          parsed.retryAfterSec >= 0
+          parsed.retryAfterSec > 0
             ? formatRetryAfter(parsed.retryAfterSec)
             : null
         if (detail && retryHint) return `${base} ${detail} ${retryHint}`
