@@ -108,6 +108,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       // Invalidate in-flight getUserMedia so a late resolve cannot leave a live stream.
       startRequestRef.current += 1
       stopStream()
+      setIsVideoReady(false)
+      setIsLoading(true)
     }
   }, [facingMode, startCamera, stopStream])
 
