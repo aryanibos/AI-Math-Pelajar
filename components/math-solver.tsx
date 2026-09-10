@@ -97,14 +97,17 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               )
             } catch (err) {
               if (err instanceof Error && err.message.startsWith("{")) throw err
+              const fallbackError =
+                response.status >= 500
+                  ? "AI service unavailable. Please try again later."
+                  : response.status === 429
+                    ? "Too many requests. Please try again later."
+                    : response.status === 413
+                      ? "Request body too large"
+                      : "Failed to fetch the chat response."
               throw new Error(
                 JSON.stringify({
-                  error:
-                    response.status === 429
-                      ? "Too many requests. Please try again later."
-                      : response.status === 413
-                        ? "Request body too large"
-                        : text || "Failed to fetch the chat response.",
+                  error: fallbackError,
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
                 }),

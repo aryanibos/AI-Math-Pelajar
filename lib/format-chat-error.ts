@@ -15,6 +15,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Permintaan tidak dapat diverifikasi. Silakan coba lagi.",
   "AI service unavailable. Please try again later.":
     "Layanan AI sedang tidak tersedia. Silakan coba lagi nanti.",
+  "Failed to fetch the chat response.":
+    "Gagal menghubungi server. Silakan coba lagi.",
   "Request cancelled.": "Permintaan dibatalkan.",
 }
 
