@@ -1,6 +1,7 @@
 "use client"
 
 import type { UIMessage } from "ai"
+import type { Components } from "react-markdown"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, CheckCircle, FileText, Sparkles, AlertTriangle } from "lucide-react"
@@ -9,6 +10,72 @@ import { extractUserDisplayText } from "@/lib/education-level"
 import ReactMarkdown from "react-markdown"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
+
+const SOLUTION_MARKDOWN_COMPONENTS: Components = {
+  h1: ({ children }) => (
+    <h1 className="mb-4 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+      {children}
+    </h1>
+  ),
+  h2: ({ children }) => (
+    <h2 className="mb-3 mt-6 text-lg font-bold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children }) => (
+    <h3 className="mb-2 mt-4 text-base font-semibold text-foreground" style={{ fontFamily: "var(--font-display)" }}>
+      {children}
+    </h3>
+  ),
+  p: ({ children }) => (
+    <p className="mb-3 text-foreground leading-relaxed">{children}</p>
+  ),
+  ul: ({ children }) => (
+    <ul className="mb-4 ml-4 list-disc space-y-2 text-foreground">{children}</ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="mb-4 ml-4 list-decimal space-y-2 text-foreground">{children}</ol>
+  ),
+  li: ({ children }) => (
+    <li className="text-foreground">{children}</li>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-bold text-primary">{children}</strong>
+  ),
+  code: ({ children }) => (
+    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-foreground">
+      {children}
+    </code>
+  ),
+  pre: ({ children }) => (
+    <pre className="mb-4 overflow-x-auto rounded-lg bg-muted p-4">
+      {children}
+    </pre>
+  ),
+  blockquote: ({ children }) => (
+    <blockquote className="mb-4 border-l-4 border-primary bg-primary/5 py-2 pl-4 italic text-foreground">
+      {children}
+    </blockquote>
+  ),
+  a: ({ href, children }) => {
+    const safe =
+      typeof href === "string" && /^https?:\/\//i.test(href)
+        ? href
+        : undefined
+    if (!safe) return <span>{children}</span>
+    return (
+      <a
+        href={safe}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline"
+      >
+        {children}
+      </a>
+    )
+  },
+  img: () => null,
+}
 
 interface SolutionDisplayProps {
   messages: UIMessage[]
@@ -169,83 +236,13 @@ export function SolutionDisplay({
                   bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian.
                 </p>
               )}
-              {isLoading ? (
-                <p className="whitespace-pre-wrap text-foreground leading-relaxed">
-                  {solutionText}
-                </p>
-              ) : (
               <ReactMarkdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[[rehypeKatex, { trust: false }]]}
-                components={{
-                  h1: ({ children }) => (
-                    <h1 className="mb-4 text-xl font-bold text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
-                      {children}
-                    </h1>
-                  ),
-                  h2: ({ children }) => (
-                    <h2 className="mb-3 mt-6 text-lg font-bold text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
-                      {children}
-                    </h2>
-                  ),
-                  h3: ({ children }) => (
-                    <h3 className="mb-2 mt-4 text-base font-semibold text-foreground" style={{ fontFamily: 'var(--font-display)' }}>
-                      {children}
-                    </h3>
-                  ),
-                  p: ({ children }) => (
-                    <p className="mb-3 text-foreground leading-relaxed">{children}</p>
-                  ),
-                  ul: ({ children }) => (
-                    <ul className="mb-4 ml-4 list-disc space-y-2 text-foreground">{children}</ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="mb-4 ml-4 list-decimal space-y-2 text-foreground">{children}</ol>
-                  ),
-                  li: ({ children }) => (
-                    <li className="text-foreground">{children}</li>
-                  ),
-                  strong: ({ children }) => (
-                    <strong className="font-bold text-primary">{children}</strong>
-                  ),
-                  code: ({ children }) => (
-                    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm text-foreground">
-                      {children}
-                    </code>
-                  ),
-                  pre: ({ children }) => (
-                    <pre className="mb-4 overflow-x-auto rounded-lg bg-muted p-4">
-                      {children}
-                    </pre>
-                  ),
-                  blockquote: ({ children }) => (
-                    <blockquote className="mb-4 border-l-4 border-primary bg-primary/5 py-2 pl-4 italic text-foreground">
-                      {children}
-                    </blockquote>
-                  ),
-                  a: ({ href, children }) => {
-                    const safe =
-                      typeof href === "string" && /^https?:\/\//i.test(href)
-                        ? href
-                        : undefined
-                    if (!safe) return <span>{children}</span>
-                    return (
-                      <a
-                        href={safe}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary underline"
-                      >
-                        {children}
-                      </a>
-                    )
-                  },
-                  img: () => null,
-                }}
+                components={SOLUTION_MARKDOWN_COMPONENTS}
               >
                 {solutionText}
               </ReactMarkdown>
-              )}
             </motion.div>
           )}
         </CardContent>
