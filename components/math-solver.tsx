@@ -33,6 +33,7 @@ import {
   stripInvisibleChars,
 } from "@/lib/education-level"
 import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
+import { isValidImageDataUrl } from "@/lib/solve-validation"
 import { formatChatError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
@@ -70,41 +71,45 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             if (response.status === 499) {
               throw new Error(JSON.stringify({ error: "Request cancelled." }))
             }
-            if (response.status === 429) {
-              const retryAfter = response.headers.get("Retry-After")
-              const retryAfterSec = retryAfter ? Number(retryAfter) : undefined
-              try {
-                const parsed = JSON.parse(text) as { error?: string }
-                throw new Error(
-                  JSON.stringify({
-                    error:
-                      parsed.error ??
-                      "Too many requests. Please try again later.",
-                    retryAfterSec:
-                      retryAfterSec && Number.isFinite(retryAfterSec)
-                        ? retryAfterSec
-                        : undefined,
-                  }),
-                )
-              } catch (err) {
-                if (err instanceof Error && err.message.startsWith("{")) throw err
-                throw new Error(
-                  JSON.stringify({
-                    error: "Too many requests. Please try again later.",
-                    retryAfterSec:
-                      retryAfterSec && Number.isFinite(retryAfterSec)
-                        ? retryAfterSec
-                        : undefined,
-                  }),
-                )
+            const retryAfter = response.headers.get("Retry-After")
+            const retryAfterSec =
+              retryAfter !== null && Number.isFinite(Number(retryAfter))
+                ? Number(retryAfter)
+                : undefined
+            try {
+              const parsed = JSON.parse(text) as {
+                error?: string
+                details?: Record<string, string[] | undefined>
               }
-            }
-            if (response.status === 413) {
               throw new Error(
-                JSON.stringify({ error: "Request body too large" }),
+                JSON.stringify({
+                  error:
+                    parsed.error ??
+                    (response.status === 429
+                      ? "Too many requests. Please try again later."
+                      : response.status === 413
+                        ? "Request body too large"
+                        : "Failed to fetch the chat response."),
+                  details: parsed.details,
+                  retryAfterSec:
+                    response.status === 429 ? retryAfterSec : undefined,
+                }),
+              )
+            } catch (err) {
+              if (err instanceof Error && err.message.startsWith("{")) throw err
+              throw new Error(
+                JSON.stringify({
+                  error:
+                    response.status === 429
+                      ? "Too many requests. Please try again later."
+                      : response.status === 413
+                        ? "Request body too large"
+                        : text || "Failed to fetch the chat response.",
+                  retryAfterSec:
+                    response.status === 429 ? retryAfterSec : undefined,
+                }),
               )
             }
-            throw new Error(text || "Failed to fetch the chat response.")
           }
           return response
         },
@@ -217,6 +222,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         if (fileInputRef.current) fileInputRef.current.value = ""
         return
       }
+      if (!isValidImageDataUrl(dataUrl)) {
+        setUploadError("Format gambar tidak valid.")
+        if (fileInputRef.current) fileInputRef.current.value = ""
+        return
+      }
       setImagePreview(dataUrl)
       setInputMode("upload")
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -241,6 +251,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     const sniffed = sniffImageMimeFromDataUrl(imageData)
     if (!sniffed || !isAllowedImageMime(sniffed)) {
+      setUploadError("Format gambar tidak valid.")
+      return
+    }
+
+    if (!isValidImageDataUrl(imageData)) {
       setUploadError("Format gambar tidak valid.")
       return
     }
@@ -312,6 +327,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         submittingRef.current = false
         return
       }
+
+      if (!isValidImageDataUrl(imagePreview)) {
+        setUploadError("Format gambar tidak valid.")
+        submittingRef.current = false
+        return
+      }
       
       parts.push({ type: "text", text: assembledText })
       parts.push({ type: "file", mediaType: mimeType, url: imagePreview })
@@ -365,7 +386,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const hasSolution =
     hasAssistantContent ||
     isLoading ||
-    (hasAssistantMessage && status === "ready")
+    (hasAssistantMessage && status === "ready" && (!streamAborted || hasAssistantContent))
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return

@@ -60,40 +60,57 @@ function formatRetryAfter(retryAfterSec: number): string {
   return `Coba lagi dalam ${minutes} menit.`
 }
 
+function isExplicitCancellation(parsed: {
+  error?: string
+  name?: string
+}): boolean {
+  return (
+    parsed.error === "Request cancelled." ||
+    parsed.name === "AbortError"
+  )
+}
+
 export function formatChatError(message: string | undefined): string {
   if (!message) {
     return "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
   }
 
-  const lower = message.toLowerCase()
-  if (lower.includes("abort") || lower.includes("cancelled")) {
-    return ERROR_MESSAGES["Request cancelled."]
+  if (message.trimStart().startsWith("{")) {
+    try {
+      const parsed = JSON.parse(message) as {
+        error?: string
+        name?: string
+        details?: Record<string, string[] | undefined>
+        retryAfterSec?: number
+      }
+      if (isExplicitCancellation(parsed)) {
+        return ERROR_MESSAGES["Request cancelled."]
+      }
+      if (typeof parsed.error === "string") {
+        const base =
+          ERROR_MESSAGES[parsed.error] ??
+          "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
+        const detail = firstDetail(parsed.details)
+        const retryHint =
+          typeof parsed.retryAfterSec === "number" &&
+          Number.isFinite(parsed.retryAfterSec) &&
+          parsed.retryAfterSec >= 0
+            ? formatRetryAfter(parsed.retryAfterSec)
+            : null
+        if (detail && retryHint) return `${base} ${detail} ${retryHint}`
+        if (detail) return `${base} ${detail}`
+        if (retryHint) return `${base} ${retryHint}`
+        return base
+      }
+      const detailOnly = firstDetail(parsed.details)
+      if (detailOnly) return detailOnly
+    } catch {
+      // Not JSON — fall through.
+    }
   }
 
-  try {
-    const parsed = JSON.parse(message) as {
-      error?: string
-      details?: Record<string, string[] | undefined>
-      retryAfterSec?: number
-    }
-    if (typeof parsed.error === "string") {
-      const base =
-        ERROR_MESSAGES[parsed.error] ??
-        "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
-      const detail = firstDetail(parsed.details)
-      const retryHint =
-        typeof parsed.retryAfterSec === "number" && parsed.retryAfterSec > 0
-          ? formatRetryAfter(parsed.retryAfterSec)
-          : null
-      if (detail && retryHint) return `${base} ${detail} ${retryHint}`
-      if (detail) return `${base} ${detail}`
-      if (retryHint) return `${base} ${retryHint}`
-      return base
-    }
-    const detailOnly = firstDetail(parsed.details)
-    if (detailOnly) return detailOnly
-  } catch {
-    // Not JSON — fall through.
+  if (message === "Request cancelled." || message === "AbortError") {
+    return ERROR_MESSAGES["Request cancelled."]
   }
 
   return ERROR_MESSAGES[message] ?? "Terjadi kesalahan saat memproses soal. Silakan coba lagi."

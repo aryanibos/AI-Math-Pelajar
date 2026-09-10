@@ -19,7 +19,8 @@ import {
 const DATA_URL_IMAGE_RE =
   /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i
 
-function isValidImageDataUrl(url: string): boolean {
+/** Shared client/server image data URL validation (strict shape + sniff). */
+export function isValidImageDataUrl(url: string): boolean {
   if (estimateDataUrlBytes(url) > MAX_IMAGE_BYTES) return false
 
   const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
