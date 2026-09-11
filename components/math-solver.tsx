@@ -33,7 +33,7 @@ import {
   stripEmbeddedScaffolding,
   stripInvisibleChars,
 } from "@/lib/education-level"
-import { MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
+import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
 import { isValidImageDataUrl } from "@/lib/solve-validation"
 import { formatChatError } from "@/lib/format-chat-error"
 
@@ -311,6 +311,20 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     if (assembledText.length > MAX_TEXT_CHARS) {
       setUploadError(`Teks soal maksimal ${MAX_TEXT_CHARS.toLocaleString("id-ID")} karakter (termasuk konteks tingkat).`)
+      submittingRef.current = false
+      return
+    }
+
+    const estimatedBodyBytes = estimateSolveRequestBodyBytes(
+      assembledText,
+      imagePreview,
+    )
+    if (estimatedBodyBytes > MAX_BODY_BYTES) {
+      setUploadError(
+        imagePreview
+          ? "Ukuran permintaan terlalu besar. Coba ambil foto lebih dekat atau kurangi teks keterangan."
+          : "Ukuran permintaan terlalu besar.",
+      )
       submittingRef.current = false
       return
     }

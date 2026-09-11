@@ -25,6 +25,19 @@ function ensureBucketCapacity(now: number): boolean {
   return buckets.size < MAX_BUCKETS
 }
 
+/** Evict the bucket with the nearest resetAt to make room for a new key. */
+function evictOldestBucket(): void {
+  let oldestKey: string | null = null
+  let oldestReset = Number.POSITIVE_INFINITY
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt < oldestReset) {
+      oldestReset = bucket.resetAt
+      oldestKey = key
+    }
+  }
+  if (oldestKey) buckets.delete(oldestKey)
+}
+
 function oldestActiveResetAt(now: number): number {
   let oldest = Number.POSITIVE_INFINITY
   for (const bucket of buckets.values()) {
@@ -47,9 +60,12 @@ export function checkRateLimit(
 
   if (!bucket || now >= bucket.resetAt) {
     if (!ensureBucketCapacity(now)) {
-      return {
-        ok: false,
-        retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
+      evictOldestBucket()
+      if (!ensureBucketCapacity(now)) {
+        return {
+          ok: false,
+          retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
+        }
       }
     }
     buckets.set(key, { count: 1, resetAt: now + windowMs })

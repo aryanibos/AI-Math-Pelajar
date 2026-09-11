@@ -68,17 +68,19 @@ function normalizeMainRef(raw) {
   return withoutHeads;
 }
 
-/** Refresh origin/main when counting remote refs (best-effort). */
+/** Refresh origin/main when counting remote refs. */
 function tryFetchOriginMain() {
   const ref = normalizeMainRef(BRANCH_RAW);
-  if (ref !== "main") return;
+  if (ref !== "main") return true;
   try {
     execFileSync("git", ["fetch", "origin", "main", "--quiet"], {
       encoding: "utf8",
       stdio: "pipe",
     });
+    return true;
   } catch {
-    console.error("Warning: git fetch origin main failed; using local refs.");
+    console.error("git fetch origin main failed.");
+    return false;
   }
 }
 
@@ -86,11 +88,12 @@ function countTodayFirstParentCommits(branch) {
   const { start, end } = wibDayBounds();
   const startMs = start.getTime();
   const endMs = end.getTime();
-  // Filter by committer date in JS — no --since (author date can omit cherry-picks).
+  // Coarse --since prune + committer-date filter (author date can omit cherry-picks).
   const log = git([
     "log",
     "--first-parent",
     "--format=%cI",
+    `--since=${start.toISOString()}`,
     branch,
   ]);
   if (!log) return 0;
@@ -100,7 +103,14 @@ function countTodayFirstParentCommits(branch) {
   }).length;
 }
 
-tryFetchOriginMain();
+const fetchOk = tryFetchOriginMain();
+if (!fetchOk && STOP) {
+  console.error("Cannot verify daily main commit count — stopping.");
+  process.exit(2);
+}
+if (!fetchOk) {
+  console.error("Warning: using local refs (fetch failed).");
+}
 
 const branch = BRANCH_RAW;
 const { label: wibDate } = wibDayBounds();

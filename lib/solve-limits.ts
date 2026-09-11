@@ -60,6 +60,18 @@ export function estimateDataUrlBytes(dataUrl: string): number {
   return Math.floor((base64.length * 3) / 4) - padding
 }
 
+/** Upper-bound serialized /api/solve JSON body (text + optional image data URL). */
+export function estimateSolveRequestBodyBytes(
+  assembledText: string,
+  imageDataUrl?: string | null,
+): number {
+  // Envelope + message/part field names; data URL is stored verbatim in JSON.
+  const envelope = 96
+  const textPart = assembledText.length + 32
+  const filePart = imageDataUrl ? imageDataUrl.length + 48 : 0
+  return envelope + textPart + filePart
+}
+
 /** Sniff image MIME from raw bytes (JPEG/PNG/GIF/WebP). */
 export function sniffImageMimeFromBytes(buffer: Uint8Array): string | null {
   if (buffer.length < 4) return null
