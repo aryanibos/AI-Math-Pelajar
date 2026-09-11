@@ -4,7 +4,9 @@ import {
   containsForbiddenSoalMarkers,
   extractEducationLevel,
   extractRawUserDisplayText,
+  IMAGE_SOLVE_PROMPT,
   rebuildSanitizedUserText,
+  SOAL_SEPARATOR,
 } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
@@ -142,19 +144,34 @@ const uiMessageSchema = z
             path: ["parts"],
           })
         } else {
-          const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
-          if (sanitized === null) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Teks soal wajib diisi.",
-              path: ["parts"],
-            })
-          } else if (textPart.text !== sanitized) {
+          const soalIdx = textPart.text.indexOf(SOAL_SEPARATOR)
+          if (
+            !hasImage &&
+            soalIdx !== -1 &&
+            textPart.text
+              .slice(soalIdx + SOAL_SEPARATOR.length)
+              .startsWith(IMAGE_SOLVE_PROMPT)
+          ) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
               message: "Invalid request structure",
               path: ["parts"],
             })
+          } else {
+            const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
+            if (sanitized === null) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Teks soal wajib diisi.",
+                path: ["parts"],
+              })
+            } else if (textPart.text !== sanitized) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Invalid request structure",
+                path: ["parts"],
+              })
+            }
           }
         }
       }
