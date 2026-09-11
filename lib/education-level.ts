@@ -15,8 +15,6 @@ export const IMAGE_SOLVE_PROMPT =
 export const KETERANGAN_PREFIX = "\n\nKeterangan tambahan: "
 
 const LEVEL_PREFIX_RE = /^\[Tingkat: (SD|SMP|SMA\/SMK|S1)\]/
-/** Interior level tags in user soal (prefix is validated separately). */
-const EMBEDDED_LEVEL_TAG_RE = /\[Tingkat: (SD|SMP|SMA\/SMK|S1)\]/
 /** Zero-width / BOM / soft-hyphen that bypass `.trim()` empty-soal checks. */
 const INVISIBLE_CHAR_RE = /[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g
 
@@ -36,11 +34,7 @@ export function hasValidEducationLevelPrefix(text: string): boolean {
 
 /** True when user soal text embeds API prompt markers (not SOAL_SEPARATOR — multi-part soal may use it). */
 export function containsForbiddenSoalMarkers(text: string): boolean {
-  return (
-    text.includes(IMAGE_SOLVE_PROMPT) ||
-    text.includes(KETERANGAN_PREFIX) ||
-    EMBEDDED_LEVEL_TAG_RE.test(text)
-  )
+  return text.includes(IMAGE_SOLVE_PROMPT) || text.includes(KETERANGAN_PREFIX)
 }
 
 /** Remove scaffolding markers a user may embed inside their soal text. */
