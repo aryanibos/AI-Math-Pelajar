@@ -29,6 +29,7 @@ import {
   containsForbiddenSoalMarkers,
   IMAGE_SOLVE_PROMPT,
   KETERANGAN_PREFIX,
+  stripEmbeddedLevelTags,
   stripEmbeddedScaffolding,
   stripInvisibleChars,
 } from "@/lib/education-level"
@@ -285,7 +286,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         submittingRef.current = false
         return
       }
-      const keterangan = trimmedText ? stripEmbeddedScaffolding(trimmedText) : ""
+      const keterangan = trimmedText
+        ? stripEmbeddedLevelTags(stripEmbeddedScaffolding(trimmedText))
+        : ""
       assembledText = `${contextText}${IMAGE_SOLVE_PROMPT}${keterangan ? `${KETERANGAN_PREFIX}${keterangan}` : ""}`
     } else if (trimmedText) {
       if (containsForbiddenSoalMarkers(trimmedText)) {
@@ -293,7 +296,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         submittingRef.current = false
         return
       }
-      const userSoal = stripEmbeddedScaffolding(trimmedText)
+      const userSoal = stripEmbeddedLevelTags(stripEmbeddedScaffolding(trimmedText))
       if (!userSoal) {
         setUploadError("Teks soal wajib diisi.")
         submittingRef.current = false
