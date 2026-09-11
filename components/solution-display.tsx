@@ -114,6 +114,32 @@ export function SolutionDisplay({
     ?.find((p): p is { type: "file"; mediaType: string; url: string } => p.type === "file")
     ?.url
 
+  /** Close unclosed $ / $$ during streaming so KaTeX does not throw on partial chunks. */
+  const closeUnclosedMathDelimiters = (text: string): string => {
+    let displayCount = 0
+    for (let i = 0; i < text.length - 1; i++) {
+      if (text[i] === "$" && text[i + 1] === "$") {
+        displayCount++
+        i++
+      }
+    }
+    let result = text
+    if (displayCount % 2 !== 0) result += "$$"
+
+    let inlineCount = 0
+    for (let i = 0; i < result.length; i++) {
+      if (result[i] === "$") {
+        if (result[i + 1] === "$") {
+          i++
+        } else {
+          inlineCount++
+        }
+      }
+    }
+    if (inlineCount % 2 !== 0) result += "$"
+    return result
+  }
+
   const preprocessLatex = (text: string): string => {
     let processed = text
 
@@ -141,7 +167,8 @@ export function SolutionDisplay({
       .filter((p): p is { type: "text"; text: string } => p.type === "text")
       .map(p => p.text)
       .join("\n")
-    return preprocessLatex(rawText)
+    const processed = preprocessLatex(rawText)
+    return isLoading ? closeUnclosedMathDelimiters(processed) : processed
   }
 
   const solutionText = getAssistantText()

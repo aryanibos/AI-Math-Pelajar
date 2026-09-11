@@ -158,10 +158,18 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         }
       }
 
-      if (estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
-        setCaptureWarning(
-          `Gambar masih terlalu besar (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba ambil foto lebih dekat atau kurangi detail.`,
-        )
+      if (
+        !imageData ||
+        estimateDataUrlBytes(imageData) === 0 ||
+        estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES
+      ) {
+        if (imageData && estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
+          setCaptureWarning(
+            `Gambar masih terlalu besar (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba ambil foto lebih dekat atau kurangi detail.`,
+          )
+        } else {
+          setError("Gagal menangkap gambar. Coba lagi.")
+        }
         return
       }
 

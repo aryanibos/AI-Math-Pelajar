@@ -47,7 +47,8 @@ function translateDetail(detail: string): string {
 
 function firstDetail(details: Record<string, string[] | undefined> | undefined): string | undefined {
   if (!details) return undefined
-  for (const messages of Object.values(details)) {
+  for (const key of Object.keys(details).sort()) {
+    const messages = details[key]
     const first = messages?.find((m): m is string => typeof m === "string" && m.length > 0)
     if (first) return translateDetail(first)
   }

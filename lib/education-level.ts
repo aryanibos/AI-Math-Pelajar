@@ -15,6 +15,7 @@ export const IMAGE_SOLVE_PROMPT =
 export const KETERANGAN_PREFIX = "\n\nKeterangan tambahan: "
 
 const LEVEL_PREFIX_RE = /^\[Tingkat: (SD|SMP|SMA\/SMK|S1)\]/
+const EMBEDDED_LEVEL_TAG_RE = /\[Tingkat: (?:SD|SMP|SMA\/SMK|S1)\]/g
 /** Zero-width / BOM / soft-hyphen that bypass `.trim()` empty-soal checks. */
 const INVISIBLE_CHAR_RE = /[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g
 
@@ -35,6 +36,11 @@ export function hasValidEducationLevelPrefix(text: string): boolean {
 /** True when user soal text embeds API prompt markers (not SOAL_SEPARATOR — multi-part soal may use it). */
 export function containsForbiddenSoalMarkers(text: string): boolean {
   return text.includes(IMAGE_SOLVE_PROMPT) || text.includes(KETERANGAN_PREFIX)
+}
+
+/** Strip embedded level tags from soal body (canonical prefix already sets level). */
+export function stripEmbeddedLevelTags(text: string): string {
+  return text.replace(EMBEDDED_LEVEL_TAG_RE, "").replace(/\s{2,}/g, " ").trim()
 }
 
 /** Remove scaffolding markers a user may embed inside their soal text. */
@@ -84,7 +90,9 @@ export function rebuildSanitizedUserText(
 
   const rawUserContent = extractRawUserDisplayText(rawText)
   if (containsForbiddenSoalMarkers(rawUserContent)) return null
-  const userContent = stripEmbeddedScaffolding(rawUserContent)
+  const userContent = stripEmbeddedLevelTags(
+    stripEmbeddedScaffolding(rawUserContent),
+  )
   const prefix = buildContextPrefix(level)
 
   if (hasImage) {
