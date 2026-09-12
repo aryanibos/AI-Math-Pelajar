@@ -11,6 +11,7 @@ import {
 import {
   ALLOWED_IMAGE_MIME_REGEX,
   estimateDataUrlBytes,
+  hasValidBase64Sample,
   MAX_IMAGE_BYTES,
   MAX_MESSAGES,
   MAX_TEXT_CHARS,
@@ -29,7 +30,10 @@ export function isValidImageDataUrl(url: string): boolean {
   const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
   const sniffed = sniffImageMimeFromDataUrl(url)
   if (!declared || !sniffed) return false
-  return normalizeImageMime(declared) === sniffed
+  if (normalizeImageMime(declared) !== sniffed) return false
+
+  const base64 = url.slice(url.indexOf(",") + 1)
+  return hasValidBase64Sample(base64)
 }
 
 const dataUrlImageSchema = z

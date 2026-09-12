@@ -126,6 +126,22 @@ export function sniffImageMimeFromBytes(buffer: Uint8Array): string | null {
   return null
 }
 
+/** Cheap base64 integrity probe — decodes only a small prefix/suffix sample. */
+export function hasValidBase64Sample(base64: string): boolean {
+  if (!base64) return false
+  const head = base64.slice(0, 64)
+  const tail = base64.length > 64 ? base64.slice(-64) : ""
+  for (const sample of tail ? [head, tail] : [head]) {
+    const padded = sample + "=".repeat((4 - (sample.length % 4)) % 4)
+    try {
+      atob(padded)
+    } catch {
+      return false
+    }
+  }
+  return true
+}
+
 /** Sniff image MIME from a data URL (client-safe; decodes only magic-byte prefix). */
 export function sniffImageMimeFromDataUrl(dataUrl: string): string | null {
   const comma = dataUrl.indexOf(",")

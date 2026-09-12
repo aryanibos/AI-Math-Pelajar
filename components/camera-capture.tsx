@@ -65,6 +65,16 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
       streamRef.current = mediaStream
 
+      for (const track of mediaStream.getVideoTracks()) {
+        track.onended = () => {
+          if (requestId !== startRequestRef.current) return
+          if (streamRef.current !== mediaStream) return
+          stopStream()
+          setIsVideoReady(false)
+          setError("Kamera terputus. Coba lagi atau muat ulang halaman.")
+        }
+      }
+
       if (videoRef.current) {
         const video = videoRef.current
         video.srcObject = mediaStream
