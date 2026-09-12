@@ -166,6 +166,7 @@ export async function POST(req: Request) {
 
   try {
     if (req.signal.aborted) {
+      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
       return new Response(null, { status: 499 })
     }
 
@@ -192,6 +193,7 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     if (req.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
+      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
       return new Response(null, { status: 499 })
     }
     console.error("Solve API error:", err)

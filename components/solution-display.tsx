@@ -291,7 +291,10 @@ export function SolutionDisplay({
                   bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian.
                 </p>
               )}
-              <MarkdownErrorBoundary key={solutionText} fallbackText={solutionText}>
+              <MarkdownErrorBoundary
+                key={assistantMessage?.id ?? "solution"}
+                fallbackText={solutionText}
+              >
                 <ReactMarkdown
                   remarkPlugins={[remarkMath]}
                   rehypePlugins={[[rehypeKatex, { trust: false }]]}
