@@ -292,7 +292,7 @@ export function SolutionDisplay({
                 </p>
               )}
               <MarkdownErrorBoundary
-                key={assistantMessage?.id ?? "solution"}
+                key={`${assistantMessage?.id ?? "solution"}-${isLoading ? "stream" : "done"}`}
                 fallbackText={solutionText}
               >
                 <ReactMarkdown

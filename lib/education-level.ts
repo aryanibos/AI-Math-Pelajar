@@ -40,7 +40,8 @@ export function containsForbiddenSoalMarkers(text: string): boolean {
 
 /** Strip embedded level tags from soal body (canonical prefix already sets level). */
 export function stripEmbeddedLevelTags(text: string): string {
-  return text.replace(EMBEDDED_LEVEL_TAG_RE, "").replace(/\s{2,}/g, " ").trim()
+  // Collapse horizontal whitespace only — preserve paragraph breaks in multi-part soal.
+  return text.replace(EMBEDDED_LEVEL_TAG_RE, "").replace(/[ \t]{2,}/g, " ").trim()
 }
 
 /** Remove scaffolding markers a user may embed inside their soal text. */
