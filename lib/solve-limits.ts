@@ -65,11 +65,27 @@ export function estimateSolveRequestBodyBytes(
   assembledText: string,
   imageDataUrl?: string | null,
 ): number {
-  // Envelope + message/part field names; data URL is stored verbatim in JSON.
-  const envelope = 96
-  const textPart = assembledText.length + 32
-  const filePart = imageDataUrl ? imageDataUrl.length + 48 : 0
-  return envelope + textPart + filePart
+  const parts: Array<
+    | { type: "text"; text: string }
+    | { type: "file"; mediaType: string; url: string }
+  > = [{ type: "text", text: assembledText }]
+  if (imageDataUrl) {
+    const mimeMatch = imageDataUrl.match(/^data:(image\/[^;]+);base64,/)
+    const mediaType = mimeMatch ? normalizeImageMime(mimeMatch[1]) : "image/jpeg"
+    parts.push({ type: "file", mediaType, url: imageDataUrl })
+  }
+  // Match useChat payload shape; JSON.stringify accounts for escape overhead.
+  const body = {
+    id: "00000000-0000-0000-0000-000000000000",
+    messages: [
+      {
+        role: "user",
+        id: "00000000-0000-0000-0000-000000000000",
+        parts,
+      },
+    ],
+  }
+  return new TextEncoder().encode(JSON.stringify(body)).length
 }
 
 /** Sniff image MIME from raw bytes (JPEG/PNG/GIF/WebP). */

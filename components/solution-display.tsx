@@ -2,6 +2,7 @@
 
 import type { UIMessage } from "ai"
 import type { Components } from "react-markdown"
+import { Component, type ReactNode } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, CheckCircle, FileText, Sparkles, AlertTriangle } from "lucide-react"
@@ -75,6 +76,33 @@ const SOLUTION_MARKDOWN_COMPONENTS: Components = {
     )
   },
   img: () => null,
+}
+
+class MarkdownErrorBoundary extends Component<
+  { children: ReactNode; fallbackText: string },
+  { hasError: boolean }
+> {
+  state = { hasError: false }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+            Sebagian rumus tidak dapat ditampilkan. Menampilkan teks mentah:
+          </p>
+          <pre className="whitespace-pre-wrap text-sm text-foreground leading-relaxed">
+            {this.props.fallbackText}
+          </pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }
 
 interface SolutionDisplayProps {
@@ -263,13 +291,15 @@ export function SolutionDisplay({
                   bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian.
                 </p>
               )}
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[[rehypeKatex, { trust: false }]]}
-                components={SOLUTION_MARKDOWN_COMPONENTS}
-              >
-                {solutionText}
-              </ReactMarkdown>
+              <MarkdownErrorBoundary key={solutionText} fallbackText={solutionText}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[[rehypeKatex, { trust: false }]]}
+                  components={SOLUTION_MARKDOWN_COMPONENTS}
+                >
+                  {solutionText}
+                </ReactMarkdown>
+              </MarkdownErrorBoundary>
             </motion.div>
           )}
         </CardContent>
