@@ -126,12 +126,16 @@ export function sniffImageMimeFromBytes(buffer: Uint8Array): string | null {
   return null
 }
 
-/** Cheap base64 integrity probe — decodes only a small prefix/suffix sample. */
+/** Cheap base64 integrity probe — decodes head/mid/tail samples (not full image). */
 export function hasValidBase64Sample(base64: string): boolean {
   if (!base64) return false
   const head = base64.slice(0, 64)
   const tail = base64.length > 64 ? base64.slice(-64) : ""
-  for (const sample of tail ? [head, tail] : [head]) {
+  const midStart = Math.max(0, Math.floor(base64.length / 2) - 32)
+  const mid =
+    base64.length > 128 ? base64.slice(midStart, midStart + 64) : ""
+  const samples = mid ? [head, mid, tail] : tail ? [head, tail] : [head]
+  for (const sample of samples) {
     const padded = sample + "=".repeat((4 - (sample.length % 4)) % 4)
     try {
       atob(padded)

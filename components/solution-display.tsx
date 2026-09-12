@@ -200,7 +200,8 @@ export function SolutionDisplay({
   }
 
   const solutionText = getAssistantText()
-  const hasEmptySolution = !isLoading && !solutionText && !!assistantMessage
+  const hasEmptySolution =
+    !isLoading && !solutionText.trim() && !!assistantMessage
   const isTruncated =
     (assistantMessage?.metadata as { truncated?: boolean } | undefined)?.truncated === true
 

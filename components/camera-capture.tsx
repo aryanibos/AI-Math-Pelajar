@@ -29,6 +29,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   }, [])
 
   const stopStream = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null

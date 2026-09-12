@@ -219,7 +219,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     const reader = new FileReader()
     fileReaderRef.current = reader
     reader.onload = (event) => {
-      if (!mountedRef.current) return
+      if (!mountedRef.current || reader !== fileReaderRef.current) return
       const dataUrl = event.target?.result as string
       if (estimateDataUrlBytes(dataUrl) > MAX_IMAGE_BYTES) {
         setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
@@ -236,7 +236,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
     reader.onerror = () => {
-      if (!mountedRef.current) return
+      if (!mountedRef.current || reader !== fileReaderRef.current) return
       if (reader.error?.name === "AbortError") return
       setUploadError("Gagal membaca file gambar.")
       if (fileInputRef.current) fileInputRef.current.value = ""
