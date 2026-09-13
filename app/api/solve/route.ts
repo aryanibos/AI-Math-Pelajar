@@ -184,6 +184,9 @@ export async function POST(req: Request) {
           return { truncated: true }
         }
       },
+      onFinish: ({ isAborted }) => {
+        if (isAborted) refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+      },
       onError: (error) => {
         console.error("Solve API stream error:", error)
         refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
