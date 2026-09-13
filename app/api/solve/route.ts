@@ -181,8 +181,13 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       messageMetadata: ({ part }) => {
-        if (part.type === "finish" && part.finishReason === "length") {
-          return { truncated: true }
+        if (part.type !== "finish") return
+        const reason = part.finishReason
+        if (reason === "length") {
+          return { truncated: true, finishReason: reason }
+        }
+        if (reason !== "stop") {
+          return { incomplete: true, finishReason: reason }
         }
       },
       onFinish: ({ isAborted }) => {

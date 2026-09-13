@@ -202,8 +202,21 @@ export function SolutionDisplay({
   const solutionText = getAssistantText()
   const hasEmptySolution =
     !isLoading && !solutionText.trim() && !!assistantMessage
-  const isTruncated =
-    (assistantMessage?.metadata as { truncated?: boolean } | undefined)?.truncated === true
+  const assistantMetadata = assistantMessage?.metadata as
+    | { truncated?: boolean; incomplete?: boolean; finishReason?: string }
+    | undefined
+  const isTruncated = assistantMetadata?.truncated === true
+  const finishReason = assistantMetadata?.finishReason
+  const incompleteBanner =
+    isTruncated
+      ? "Jawaban mungkin terpotong karena terlalu panjang. Coba pecah soal menjadi bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian."
+      : finishReason === "content-filter"
+        ? "Jawaban mungkin tidak lengkap karena filter konten. Coba ubah cara menulis soal atau ajukan soal baru."
+        : finishReason === "error"
+          ? "Jawaban mungkin tidak lengkap karena terjadi gangguan saat pemrosesan. Silakan coba lagi."
+          : assistantMetadata?.incomplete
+            ? "Jawaban mungkin tidak lengkap. Silakan coba lagi jika penjelasan terasa terputus."
+            : null
 
   return (
     <div className="space-y-6">
@@ -286,10 +299,9 @@ export function SolutionDisplay({
                   {streamErrorMessage} Jawaban di bawah mungkin tidak lengkap.
                 </p>
               )}
-              {isTruncated && (
+              {incompleteBanner && (
                 <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
-                  Jawaban mungkin terpotong karena terlalu panjang. Coba pecah soal menjadi
-                  bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian.
+                  {incompleteBanner}
                 </p>
               )}
               <MarkdownErrorBoundary
