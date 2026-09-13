@@ -217,6 +217,7 @@ export function SolutionDisplay({
           : assistantMetadata?.incomplete
             ? "Jawaban mungkin tidak lengkap. Silakan coba lagi jika penjelasan terasa terputus."
             : null
+  const isIncomplete = incompleteBanner !== null
 
   return (
     <div className="space-y-6">
@@ -256,10 +257,12 @@ export function SolutionDisplay({
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 <span style={{ fontFamily: 'var(--font-display)' }}>Sedang Mengerjakan...</span>
               </>
-            ) : isTruncated ? (
+            ) : isIncomplete ? (
               <>
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
-                <span style={{ fontFamily: 'var(--font-display)' }}>Penyelesaian (Terpotong)</span>
+                <span style={{ fontFamily: 'var(--font-display)' }}>
+                  {isTruncated ? "Penyelesaian (Terpotong)" : "Penyelesaian (Tidak Lengkap)"}
+                </span>
               </>
             ) : (
               <>
@@ -284,9 +287,15 @@ export function SolutionDisplay({
             </div>
           ) : hasEmptySolution ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-muted-foreground">
-                AI tidak mengembalikan jawaban. Silakan coba lagi dengan soal yang lebih jelas.
-              </p>
+              {incompleteBanner ? (
+                <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+                  {incompleteBanner}
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  AI tidak mengembalikan jawaban. Silakan coba lagi dengan soal yang lebih jelas.
+                </p>
+              )}
             </div>
           ) : (
             <motion.div
