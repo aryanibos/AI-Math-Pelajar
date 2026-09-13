@@ -80,7 +80,7 @@ export function checkRateLimit(
   return { ok: true }
 }
 
-/** Undo one quota charge on body-read abort (499), body-read timeout (408), pre-stream abort (499), or pre-stream 503 — not on validation/body 4xx or mid-stream errors. Capped at MAX_REFUNDS_PER_WINDOW per key per window. */
+/** Undo one quota charge on body-read abort (499), body-read timeout (408), pre-stream abort (499), pre-stream 503, or mid-stream AI errors — not on validation/body 4xx. Capped at MAX_REFUNDS_PER_WINDOW per key per window. */
 export function refundRateLimit(key: string, windowMs: number): void {
   const now = Date.now()
   pruneExpiredRefundBuckets(now)
