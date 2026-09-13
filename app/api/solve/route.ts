@@ -88,6 +88,7 @@ export async function POST(req: Request) {
       return new Response(null, { status: 499 })
     }
     console.error("Solve API body read error:", err)
+    refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
     return Response.json(
       { error: "Unable to read request body." },
       { status: 400 },
