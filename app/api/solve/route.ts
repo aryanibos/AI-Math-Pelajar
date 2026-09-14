@@ -79,16 +79,23 @@ export async function POST(req: Request) {
     )
   }
 
+  let quotaRefunded = false
+  const refundQuotaOnce = () => {
+    if (quotaRefunded) return
+    quotaRefunded = true
+    refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+  }
+
   let raw
   try {
     raw = await readRequestBodyWithLimit(req, MAX_BODY_BYTES)
   } catch (err) {
     if (req.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
-      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+      refundQuotaOnce()
       return new Response(null, { status: 499 })
     }
     console.error("Solve API body read error:", err)
-    refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+    refundQuotaOnce()
     return Response.json(
       { error: "Unable to read request body." },
       { status: 400 },
@@ -102,7 +109,7 @@ export async function POST(req: Request) {
       )
     }
     if (raw.reason === "timeout") {
-      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+      refundQuotaOnce()
       return Response.json(
         { error: "Request body read timed out." },
         { status: 408 },
@@ -167,7 +174,7 @@ export async function POST(req: Request) {
 
   try {
     if (req.signal.aborted) {
-      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+      refundQuotaOnce()
       return new Response(null, { status: 499 })
     }
 
@@ -191,11 +198,11 @@ export async function POST(req: Request) {
         }
       },
       onFinish: ({ isAborted }) => {
-        if (isAborted) refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+        if (isAborted) refundQuotaOnce()
       },
       onError: (error) => {
         console.error("Solve API stream error:", error)
-        refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+        refundQuotaOnce()
         return JSON.stringify({
           error: "AI service unavailable. Please try again later.",
         })
@@ -203,11 +210,11 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     if (req.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
-      refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+      refundQuotaOnce()
       return new Response(null, { status: 499 })
     }
     console.error("Solve API error:", err)
-    refundRateLimit(rateKey, RATE_LIMIT_WINDOW_MS)
+    refundQuotaOnce()
     return Response.json(
       { error: "AI service unavailable. Please try again later." },
       { status: 503 },
