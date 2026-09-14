@@ -25,8 +25,15 @@ function ensureBucketCapacity(now: number): boolean {
   return buckets.size < MAX_BUCKETS
 }
 
-/** Evict the bucket with the nearest resetAt to make room for a new key. */
+/** Evict a bucket to make room for a new key — prefer depleted buckets so active quotas are not reset early. */
 function evictOldestBucket(): void {
+  for (const [key, bucket] of buckets) {
+    if (bucket.count === 0) {
+      buckets.delete(key)
+      return
+    }
+  }
+
   let oldestKey: string | null = null
   let oldestReset = Number.POSITIVE_INFINITY
   for (const [key, bucket] of buckets) {
@@ -80,6 +87,26 @@ export function checkRateLimit(
   return { ok: true }
 }
 
+/** Normalize client IP strings for stable rate-limit bucket keys. */
+function normalizeClientIp(raw: string): string {
+  let ip = raw.trim()
+  if (!ip) return ip
+
+  // Bracketed IPv6: [2001:db8::1] → 2001:db8::1
+  if (ip.startsWith("[") && ip.endsWith("]")) {
+    ip = ip.slice(1, -1).trim()
+  }
+
+  // IPv4-mapped IPv6: ::ffff:192.0.2.1 → 192.0.2.1
+  const mapped = ip.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i)
+  if (mapped) return mapped[1]
+
+  // Lowercase IPv6 for stable keys (IPv4 stays dotted-decimal).
+  if (ip.includes(":")) return ip.toLowerCase()
+
+  return ip
+}
+
 /** Undo one quota charge on body-read abort (499), body-read timeout (408), transient body-read failures (400), pre-stream abort (499), pre-stream 503, mid-stream client abort, or mid-stream AI errors — not on validation 4xx. Capped at MAX_REFUNDS_PER_WINDOW per key per window. */
 export function refundRateLimit(key: string, windowMs: number): void {
   const now = Date.now()
@@ -118,16 +145,22 @@ export function getClientIp(req: Request): string | null {
   // Vercel-only header — do not fall back to x-forwarded-for (client-spoofable).
   if (process.env.VERCEL === "1") {
     const vercelIp = req.headers.get("x-vercel-forwarded-for")?.trim()
-    if (vercelIp) return vercelIp.split(",")[0]?.trim() || null
+    if (vercelIp) {
+      const first = vercelIp.split(",")[0]?.trim()
+      return first ? normalizeClientIp(first) : null
+    }
     return null
   }
 
   // TRUST_PROXY_HEADERS: prefer XFF first hop (proxy-appended), then x-real-ip.
   if (process.env.TRUST_PROXY_HEADERS === "1") {
     const forwarded = req.headers.get("x-forwarded-for")?.trim()
-    if (forwarded) return forwarded.split(",")[0]?.trim() || null
+    if (forwarded) {
+      const first = forwarded.split(",")[0]?.trim()
+      if (first) return normalizeClientIp(first)
+    }
     const realIp = req.headers.get("x-real-ip")?.trim()
-    if (realIp) return realIp
+    if (realIp) return normalizeClientIp(realIp)
   }
 
   return null
