@@ -9,7 +9,10 @@ const MAX_REFUNDS_PER_WINDOW = 3
 /** Simple in-memory fixed-window rate limiter (per server instance). */
 function pruneExpiredBuckets(now: number) {
   for (const [key, bucket] of buckets) {
-    if (now >= bucket.resetAt) buckets.delete(key)
+    if (now >= bucket.resetAt) {
+      buckets.delete(key)
+      refundBuckets.delete(key)
+    }
   }
 }
 
@@ -30,6 +33,7 @@ function evictDepletedBucket(): boolean {
   for (const [key, bucket] of buckets) {
     if (bucket.count === 0) {
       buckets.delete(key)
+      refundBuckets.delete(key)
       return true
     }
   }
