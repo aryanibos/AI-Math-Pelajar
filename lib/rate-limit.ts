@@ -28,18 +28,6 @@ function ensureBucketCapacity(now: number): boolean {
   return buckets.size < MAX_BUCKETS
 }
 
-/** Evict a depleted bucket (count: 0) to make room for a new key. Never evicts active quotas. */
-function evictDepletedBucket(): boolean {
-  for (const [key, bucket] of buckets) {
-    if (bucket.count === 0) {
-      buckets.delete(key)
-      refundBuckets.delete(key)
-      return true
-    }
-  }
-  return false
-}
-
 function oldestActiveResetAt(now: number): number {
   let oldest = Number.POSITIVE_INFINITY
   for (const bucket of buckets.values()) {
@@ -62,11 +50,11 @@ export function checkRateLimit(
 
   if (!bucket || now >= bucket.resetAt) {
     if (!ensureBucketCapacity(now)) {
-      if (!evictDepletedBucket()) {
-        return {
-          ok: false,
-          retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
-        }
+      // Do not evict count:0 buckets that still anchor an active window — that would
+      // grant a fresh hourly quota. Rely on pruneExpiredBuckets to free slots instead.
+      return {
+        ok: false,
+        retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
       }
     }
     buckets.set(key, { count: 1, resetAt: now + windowMs })
