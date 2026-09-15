@@ -10,12 +10,14 @@ import {
 } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
+  decodeImageDataUrlBytes,
   estimateDataUrlBytes,
   hasValidBase64Sample,
   MAX_IMAGE_BYTES,
   MAX_MESSAGES,
   MAX_TEXT_CHARS,
   normalizeImageMime,
+  sniffImageMimeFromBytes,
   sniffImageMimeFromDataUrl,
 } from "./solve-limits"
 
@@ -33,7 +35,20 @@ export function isValidImageDataUrl(url: string): boolean {
   if (normalizeImageMime(declared) !== sniffed) return false
 
   const base64 = url.slice(url.indexOf(",") + 1)
-  return hasValidBase64Sample(base64)
+  if (!hasValidBase64Sample(base64)) return false
+
+  // Server: full decode — rejects truncated/corrupt payloads that pass sampling.
+  if (typeof window === "undefined") {
+    const bytes = decodeImageDataUrlBytes(url)
+    if (!bytes) return false
+    if (bytes.length !== estimateDataUrlBytes(url)) return false
+    const resniff = sniffImageMimeFromBytes(bytes)
+    if (!resniff || normalizeImageMime(resniff) !== normalizeImageMime(declared)) {
+      return false
+    }
+  }
+
+  return true
 }
 
 const dataUrlImageSchema = z
