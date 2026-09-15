@@ -18,17 +18,19 @@ export async function readRequestBodyWithLimit(
   { ok: true; text: string } | { ok: false; reason: BodyReadFailureReason }
 > {
   const declaredRaw = req.headers.get("content-length")
+  let declaredLength: number | null = null
   if (declaredRaw != null) {
     const declared = Number(declaredRaw)
     if (!Number.isInteger(declared) || declared < 0) {
       return { ok: false, reason: "invalid_content_length" }
     }
     if (declared > maxBytes) return { ok: false, reason: "too_large" }
+    declaredLength = declared
   }
 
   const body = req.body
   if (!body) {
-    if (declaredRaw != null && Number(declaredRaw) > 0) {
+    if (declaredLength != null && declaredLength > 0) {
       return { ok: false, reason: "invalid_content_length" }
     }
     return { ok: true, text: "" }
@@ -110,6 +112,13 @@ export async function readRequestBodyWithLimit(
       const { done, value } = await readChunk(remainingMs)
       if (done) break
       if (!value || value.byteLength === 0) continue
+      if (
+        declaredLength != null &&
+        total + value.byteLength > declaredLength
+      ) {
+        await reader.cancel()
+        return { ok: false, reason: "invalid_content_length" }
+      }
       if (total + value.byteLength > maxBytes) {
         await reader.cancel()
         return { ok: false, reason: "too_large" }
@@ -126,13 +135,12 @@ export async function readRequestBodyWithLimit(
     reader.releaseLock()
   }
 
-  if (declaredRaw != null) {
-    const declared = Number(declaredRaw)
-    if (total < declared) {
+  if (declaredLength != null) {
+    if (total < declaredLength) {
       // Client closed early or network dropped — transient, not a spoofed header.
       return { ok: false, reason: "incomplete_body" }
     }
-    if (total > declared) {
+    if (total > declaredLength) {
       return { ok: false, reason: "invalid_content_length" }
     }
   }

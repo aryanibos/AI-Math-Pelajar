@@ -144,6 +144,14 @@ const uiMessageSchema = z
     const fileParts = msg.parts.filter((p) => p.type === "file")
     const textPart = textParts[0]
     if (textPart) {
+      if (typeof textPart.text !== "string") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid request structure",
+          path: ["parts"],
+        })
+        return
+      }
       const hasImage = fileParts.length === 1
       const level = extractEducationLevel(textPart.text)
       if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {

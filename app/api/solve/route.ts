@@ -140,7 +140,13 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
-  const parsed = solveRequestSchema.safeParse(body)
+  let parsed
+  try {
+    parsed = solveRequestSchema.safeParse(body)
+  } catch (err) {
+    console.error("Solve API validation error:", err)
+    return Response.json({ error: "Invalid request" }, { status: 400 })
+  }
   if (!parsed.success) {
     return Response.json(
       { error: "Invalid request", details: zodFieldErrors(parsed.error) },

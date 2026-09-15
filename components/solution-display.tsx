@@ -331,7 +331,7 @@ export function SolutionDisplay({
       </Card>
 
       {/* Tips Card */}
-      {!isLoading && solutionText && (
+      {!isLoading && solutionText && !isIncomplete && !streamErrorMessage && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
