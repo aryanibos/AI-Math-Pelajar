@@ -6,6 +6,7 @@ import { BODY_READ_TIMEOUT_MS } from "@/lib/solve-limits"
  */
 export type BodyReadFailureReason =
   | "invalid_content_length"
+  | "incomplete_body"
   | "too_large"
   | "timeout"
 
@@ -127,7 +128,11 @@ export async function readRequestBodyWithLimit(
 
   if (declaredRaw != null) {
     const declared = Number(declaredRaw)
-    if (total !== declared) {
+    if (total < declared) {
+      // Client closed early or network dropped — transient, not a spoofed header.
+      return { ok: false, reason: "incomplete_body" }
+    }
+    if (total > declared) {
       return { ok: false, reason: "invalid_content_length" }
     }
   }

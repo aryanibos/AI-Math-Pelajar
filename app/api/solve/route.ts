@@ -108,6 +108,13 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
+    if (raw.reason === "incomplete_body") {
+      refundQuotaOnce()
+      return Response.json(
+        { error: "Unable to read request body." },
+        { status: 400 },
+      )
+    }
     if (raw.reason === "timeout") {
       refundQuotaOnce()
       return Response.json(
