@@ -126,16 +126,23 @@ export function sniffImageMimeFromBytes(buffer: Uint8Array): string | null {
   return null
 }
 
-/** Full base64 decode (server-only; Node Buffer). Returns null on failure or oversize. */
+/** Full base64 decode (Node Buffer on server, atob on client). Returns null on failure or oversize. */
 export function decodeImageDataUrlBytes(dataUrl: string): Uint8Array | null {
   const comma = dataUrl.indexOf(",")
   if (comma === -1) return null
   const base64 = dataUrl.slice(comma + 1)
   if (!base64) return null
   try {
-    const buf = Buffer.from(base64, "base64")
-    if (buf.length > MAX_IMAGE_BYTES) return null
-    return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+    if (typeof Buffer !== "undefined") {
+      const buf = Buffer.from(base64, "base64")
+      if (buf.length > MAX_IMAGE_BYTES) return null
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+    }
+    const binary = atob(base64)
+    if (binary.length > MAX_IMAGE_BYTES) return null
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return bytes
   } catch {
     return null
   }

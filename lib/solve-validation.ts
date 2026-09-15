@@ -37,15 +37,13 @@ export function isValidImageDataUrl(url: string): boolean {
   const base64 = url.slice(url.indexOf(",") + 1)
   if (!hasValidBase64Sample(base64)) return false
 
-  // Server: full decode — rejects truncated/corrupt payloads that pass sampling.
-  if (typeof window === "undefined") {
-    const bytes = decodeImageDataUrlBytes(url)
-    if (!bytes) return false
-    if (bytes.length !== estimateDataUrlBytes(url)) return false
-    const resniff = sniffImageMimeFromBytes(bytes)
-    if (!resniff || normalizeImageMime(resniff) !== normalizeImageMime(declared)) {
-      return false
-    }
+  // Full decode — rejects truncated/corrupt payloads that pass sampling (client + server).
+  const bytes = decodeImageDataUrlBytes(url)
+  if (!bytes) return false
+  if (bytes.length !== estimateDataUrlBytes(url)) return false
+  const resniff = sniffImageMimeFromBytes(bytes)
+  if (!resniff || normalizeImageMime(resniff) !== normalizeImageMime(declared)) {
+    return false
   }
 
   return true

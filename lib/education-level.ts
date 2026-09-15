@@ -16,8 +16,8 @@ export const KETERANGAN_PREFIX = "\n\nKeterangan tambahan: "
 
 const LEVEL_PREFIX_RE = /^\[Tingkat: (SD|SMP|SMA\/SMK|S1)\]/
 const EMBEDDED_LEVEL_TAG_RE = /\[Tingkat: (?:SD|SMP|SMA\/SMK|S1)\]/g
-/** Zero-width / BOM / soft-hyphen that bypass `.trim()` empty-soal checks. */
-const INVISIBLE_CHAR_RE = /[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g
+/** Zero-width / BOM / soft-hyphen / Hangul filler (U+3164) that bypass `.trim()` empty-soal checks. */
+const INVISIBLE_CHAR_RE = /[\u200B-\u200D\uFEFF\u00AD\u2060\u180E\u3164]/g
 
 export function stripInvisibleChars(text: string): string {
   return text.replace(INVISIBLE_CHAR_RE, "")
