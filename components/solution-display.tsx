@@ -142,6 +142,14 @@ export function SolutionDisplay({
     ?.find((p): p is { type: "file"; mediaType: string; url: string } => p.type === "file")
     ?.url
 
+  /** `$50`-style currency and escaped `\$` are literal — not inline math delimiters. */
+  const isLiteralDollar = (text: string, index: number): boolean => {
+    if (text[index] !== "$") return false
+    if (index > 0 && text[index - 1] === "\\") return true
+    const next = text[index + 1]
+    return next !== undefined && /\d/.test(next)
+  }
+
   /** Close unclosed $ / $$ during streaming so KaTeX does not throw on partial chunks. */
   const closeUnclosedMathDelimiters = (text: string): string => {
     let displayCount = 0
@@ -159,7 +167,7 @@ export function SolutionDisplay({
       if (result[i] === "$") {
         if (result[i + 1] === "$") {
           i++
-        } else {
+        } else if (!isLiteralDollar(result, i)) {
           inlineCount++
         }
       }

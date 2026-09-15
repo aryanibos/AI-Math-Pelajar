@@ -60,6 +60,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const fileReaderRef = useRef<FileReader | null>(null)
   const mountedRef = useRef(true)
   const submittingRef = useRef(false)
+  /** Set after capture/upload passes full image validation — skip re-decode on submit. */
+  const imagePreviewValidatedRef = useRef(false)
 
   const transport = useMemo(
     () =>
@@ -231,6 +233,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         if (fileInputRef.current) fileInputRef.current.value = ""
         return
       }
+      imagePreviewValidatedRef.current = true
       setImagePreview(dataUrl)
       setInputMode("upload")
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -264,6 +267,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       return
     }
 
+    imagePreviewValidatedRef.current = true
     setImagePreview(imageData)
     setInputMode("camera")
     setShowCamera(false)
@@ -348,7 +352,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         return
       }
 
-      if (!isValidImageDataUrl(imagePreview)) {
+      if (!imagePreviewValidatedRef.current && !isValidImageDataUrl(imagePreview)) {
         setUploadError("Format gambar tidak valid.")
         submittingRef.current = false
         return
@@ -382,6 +386,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     abortStream()
     fileReaderRef.current?.abort()
     fileReaderRef.current = null
+    imagePreviewValidatedRef.current = false
     setTextInput("")
     setImagePreview(null)
     setInputMode(null)
@@ -626,6 +631,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       onClick={() => {
                         fileReaderRef.current?.abort()
                         fileReaderRef.current = null
+                        imagePreviewValidatedRef.current = false
                         setImagePreview(null)
                         setInputMode(null)
                         setUploadError(null)

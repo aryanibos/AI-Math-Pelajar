@@ -160,14 +160,16 @@ export async function POST(req: Request) {
   const userTextPart = userMessage.parts.find((p) => p.type === "text")
   const userFilePart = userMessage.parts.find((p) => p.type === "file")
 
-  if (!userTextPart) {
-    return Response.json({ error: "Invalid request" }, { status: 400 })
-  }
-
   const hasImage = !!userFilePart
-  const rebuilt = rebuildSanitizedUserText(userTextPart.text, hasImage)
+  // Zod already validated text part + rebuild equality; rebuild again for defense-in-depth.
+  const rebuilt = rebuildSanitizedUserText(userTextPart!.text, hasImage)
   if (!rebuilt) {
-    return Response.json({ error: "Invalid request" }, { status: 400 })
+    console.error("Solve API: rebuild failed after Zod parse")
+    refundQuotaOnce()
+    return Response.json(
+      { error: "AI service unavailable. Please try again later." },
+      { status: 503 },
+    )
   }
 
   const sanitizedMessages = [
