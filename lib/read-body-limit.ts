@@ -5,7 +5,8 @@ import { BODY_READ_TIMEOUT_MS } from "@/lib/solve-limits"
  * Rejects oversized bodies even when Content-Length is missing or wrong.
  */
 export type BodyReadFailureReason =
-  | "invalid_content_length"
+  | "malformed_content_length"
+  | "content_length_mismatch"
   | "incomplete_body"
   | "too_large"
   | "timeout"
@@ -22,7 +23,7 @@ export async function readRequestBodyWithLimit(
   if (declaredRaw != null) {
     const declared = Number(declaredRaw)
     if (!Number.isInteger(declared) || declared < 0) {
-      return { ok: false, reason: "invalid_content_length" }
+      return { ok: false, reason: "malformed_content_length" }
     }
     if (declared > maxBytes) return { ok: false, reason: "too_large" }
     declaredLength = declared
@@ -31,7 +32,7 @@ export async function readRequestBodyWithLimit(
   const body = req.body
   if (!body) {
     if (declaredLength != null && declaredLength > 0) {
-      return { ok: false, reason: "invalid_content_length" }
+      return { ok: false, reason: "malformed_content_length" }
     }
     return { ok: true, text: "" }
   }
@@ -117,7 +118,7 @@ export async function readRequestBodyWithLimit(
         total + value.byteLength > declaredLength
       ) {
         await reader.cancel()
-        return { ok: false, reason: "invalid_content_length" }
+        return { ok: false, reason: "content_length_mismatch" }
       }
       if (total + value.byteLength > maxBytes) {
         await reader.cancel()
@@ -141,7 +142,7 @@ export async function readRequestBodyWithLimit(
       return { ok: false, reason: "incomplete_body" }
     }
     if (total > declaredLength) {
-      return { ok: false, reason: "invalid_content_length" }
+      return { ok: false, reason: "content_length_mismatch" }
     }
   }
 
