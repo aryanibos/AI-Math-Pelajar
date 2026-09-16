@@ -109,6 +109,7 @@ export async function POST(req: Request) {
       )
     }
     if (raw.reason === "content_length_mismatch") {
+      refundQuotaOnce()
       return Response.json(
         { error: "Invalid Content-Length header" },
         { status: 400 },
@@ -133,14 +134,17 @@ export async function POST(req: Request) {
       refundQuotaOnce()
       return Response.json({ error: "Request body too large" }, { status: 413 })
     }
+    refundQuotaOnce()
     return Response.json({ error: "Unable to read request body." }, { status: 400 })
   }
 
   if (!raw.text) {
+    refundQuotaOnce()
     return Response.json({ error: "Empty request body" }, { status: 400 })
   }
 
   if (exceedsMaxJsonDepth(raw.text, MAX_JSON_DEPTH)) {
+    refundQuotaOnce()
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
@@ -148,6 +152,7 @@ export async function POST(req: Request) {
   try {
     body = JSON.parse(raw.text)
   } catch {
+    refundQuotaOnce()
     return Response.json({ error: "Invalid JSON body" }, { status: 400 })
   }
 
@@ -156,9 +161,11 @@ export async function POST(req: Request) {
     parsed = solveRequestSchema.safeParse(body)
   } catch (err) {
     console.error("Solve API validation error:", err)
+    refundQuotaOnce()
     return Response.json({ error: "Invalid request" }, { status: 400 })
   }
   if (!parsed.success) {
+    refundQuotaOnce()
     return Response.json(
       { error: "Invalid request", details: zodFieldErrors(parsed.error) },
       { status: 400 },
