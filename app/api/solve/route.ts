@@ -8,11 +8,15 @@ import { solveRequestSchema, zodFieldErrors } from "@/lib/solve-validation"
 import {
   MAX_BODY_BYTES,
   MAX_JSON_DEPTH,
-  RATE_LIMIT_REQUESTS,
   RATE_LIMIT_WINDOW_MS,
   exceedsMaxJsonDepth,
 } from "@/lib/solve-limits"
-import { checkRateLimit, getRateLimitKey, refundRateLimit } from "@/lib/rate-limit"
+import {
+  checkRateLimit,
+  getRateLimitForKey,
+  getRateLimitKey,
+  refundRateLimit,
+} from "@/lib/rate-limit"
 import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
 
 export const maxDuration = 60
@@ -61,14 +65,9 @@ PENYESUAIAN TINGKAT:
 
 export async function POST(req: Request) {
   const rateKey = getRateLimitKey(req)
-  if (!rateKey) {
-    return Response.json(
-      { error: "Unable to verify client." },
-      { status: 400 },
-    )
-  }
+  const rateLimit = getRateLimitForKey(rateKey)
 
-  const rate = checkRateLimit(rateKey, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_MS)
+  const rate = checkRateLimit(rateKey, rateLimit, RATE_LIMIT_WINDOW_MS)
   if (!rate.ok) {
     return Response.json(
       { error: "Too many requests. Please try again later." },

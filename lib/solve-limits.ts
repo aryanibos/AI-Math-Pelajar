@@ -12,6 +12,8 @@ export const MAX_BODY_BYTES = PLATFORM_MAX_BODY_BYTES
 export const BODY_READ_TIMEOUT_MS = 15_000
 export const MAX_JSON_DEPTH = 32
 export const RATE_LIMIT_REQUESTS = 15
+/** Stricter cap when client IP cannot be verified (shared bucket). */
+export const RATE_LIMIT_UNVERIFIED_REQUESTS = 5
 export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 
 export const ALLOWED_IMAGE_MIME_REGEX = /^image\/(jpeg|jpg|png|webp|gif)$/i

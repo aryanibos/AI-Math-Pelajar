@@ -1,4 +1,12 @@
+import {
+  RATE_LIMIT_REQUESTS,
+  RATE_LIMIT_UNVERIFIED_REQUESTS,
+} from "@/lib/solve-limits"
+
 type Bucket = { count: number; resetAt: number }
+
+/** Shared bucket when production cannot verify client IP (self-hosted without proxy headers). */
+export const UNVERIFIED_RATE_LIMIT_KEY = "solve:unverified"
 
 const buckets = new Map<string, Bucket>()
 const refundBuckets = new Map<string, Bucket>()
@@ -148,10 +156,15 @@ export function getClientIp(req: Request): string | null {
   return null
 }
 
-/** Rate-limit bucket key; null in production when client IP cannot be verified. */
-export function getRateLimitKey(req: Request): string | null {
+/** Rate-limit bucket key; falls back to shared unverified bucket in production. */
+export function getRateLimitKey(req: Request): string {
   const ip = getClientIp(req)
   if (ip) return `solve:${ip}`
   if (process.env.NODE_ENV !== "production") return "solve:dev"
-  return null
+  return UNVERIFIED_RATE_LIMIT_KEY
+}
+
+export function getRateLimitForKey(key: string): number {
+  if (key === UNVERIFIED_RATE_LIMIT_KEY) return RATE_LIMIT_UNVERIFIED_REQUESTS
+  return RATE_LIMIT_REQUESTS
 }
