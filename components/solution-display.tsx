@@ -172,7 +172,10 @@ export function SolutionDisplay({
         }
       }
     }
-    if (inlineCount % 2 !== 0) result += "$"
+    // Avoid turning a trailing `$` into `$$` (display math) during partial streams.
+    if (inlineCount % 2 !== 0) {
+      result += result.endsWith("$") ? "\u200B$" : "$"
+    }
     return result
   }
 
