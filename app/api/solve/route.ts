@@ -122,7 +122,12 @@ export async function POST(req: Request) {
         { status: 408 },
       )
     }
-    return Response.json({ error: "Request body too large" }, { status: 413 })
+    if (raw.reason === "too_large") {
+      // Body exceeded cap after client preflight — refund so users are not penalized.
+      refundQuotaOnce()
+      return Response.json({ error: "Request body too large" }, { status: 413 })
+    }
+    return Response.json({ error: "Unable to read request body." }, { status: 400 })
   }
 
   if (!raw.text) {
