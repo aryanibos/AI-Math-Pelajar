@@ -150,6 +150,24 @@ export function SolutionDisplay({
     return next !== undefined && /\d/.test(next)
   }
 
+  /** Escape currency `$50` so remarkMath does not open inline math on the digit. */
+  const escapeLiteralDollars = (text: string): string => {
+    let result = ""
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === "$" && text[i + 1] === "$") {
+        result += "$$"
+        i++
+        continue
+      }
+      if (isLiteralDollar(text, i) && (i === 0 || text[i - 1] !== "\\")) {
+        result += "\\$"
+        continue
+      }
+      result += text[i]
+    }
+    return result
+  }
+
   /** Close unclosed $ / $$ during streaming so KaTeX does not throw on partial chunks. */
   const closeUnclosedMathDelimiters = (text: string): string => {
     let displayCount = 0
@@ -197,7 +215,7 @@ export function SolutionDisplay({
       (_, math: string) => `\n$$${math}$$\n`,
     )
 
-    return processed
+    return escapeLiteralDollars(processed)
   }
 
   const getAssistantText = () => {
