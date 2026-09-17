@@ -144,15 +144,30 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     }
   }, [stop])
 
+  const isLoading = status === "streaming" || status === "submitted"
+
+  const hasAssistantContent = messages.some(
+    (m) =>
+      m.role === "assistant" &&
+      m.parts.some(
+        (p) => p.type === "text" && typeof p.text === "string" && p.text.trim().length > 0,
+      ),
+  )
+
+  const hasAssistantMessage = messages.some((m) => m.role === "assistant")
+
   const abortStream = useCallback(() => {
     if (status === "streaming" || status === "submitted") {
       setStreamAborted(true)
-      clearError()
+      if (hasAssistantContent) {
+        // Keep stream error for inline partial-output banner in SolutionDisplay.
+      } else {
+        clearError()
+        setUploadError("Permintaan dibatalkan.")
+      }
     }
     stop()
-  }, [status, stop, clearError])
-
-  const isLoading = status === "streaming" || status === "submitted"
+  }, [status, stop, clearError, hasAssistantContent])
 
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -396,27 +411,21 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }, [setMessages, clearError, abortStream])
 
-  const hasAssistantContent = messages.some(
-    (m) =>
-      m.role === "assistant" &&
-      m.parts.some(
-        (p) => p.type === "text" && typeof p.text === "string" && p.text.trim().length > 0,
-      ),
-  )
-
-  const hasAssistantMessage = messages.some((m) => m.role === "assistant")
-
   // Show solution view once the assistant message exists (incl. loading spinner before first token).
-  // Keep partial content visible after stream errors; empty completions use ready status.
+  // Hide immediately on abort before content to avoid flicker back to input.
   const hasSolution =
     hasAssistantContent ||
-    (isLoading && hasAssistantMessage) ||
+    (isLoading && hasAssistantMessage && !streamAborted) ||
     (hasAssistantMessage &&
       status === "ready" &&
       (!streamAborted || hasAssistantContent))
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
+    if (streamAborted && !hasAssistantMessage) {
+      setMessages([])
+      return
+    }
     const hasEmptyAssistant = messages.some(
       (m) =>
         m.role === "assistant" &&
@@ -434,7 +443,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (status === "error") {
       setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
     }
-  }, [status, streamAborted, hasAssistantContent, isLoading, messages, setMessages])
+  }, [status, streamAborted, hasAssistantContent, hasAssistantMessage, isLoading, messages, setMessages])
 
   return (
     <div className="min-h-screen bg-background">

@@ -74,6 +74,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           if (streamRef.current !== mediaStream) return
           stopStream()
           setIsVideoReady(false)
+          setCaptureWarning(null)
           setError("Kamera terputus. Coba lagi atau muat ulang halaman.")
         }
       }
@@ -195,6 +196,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const handleClose = useCallback(() => {
     startRequestRef.current += 1
     stopStream()
+    setCaptureWarning(null)
     onClose()
   }, [stopStream, onClose])
 
