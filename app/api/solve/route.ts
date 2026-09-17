@@ -230,8 +230,19 @@ export async function POST(req: Request) {
           return { incomplete: true, finishReason: reason }
         }
       },
-      onFinish: ({ isAborted }) => {
-        if (isAborted) refundQuotaOnce()
+      onFinish: ({ isAborted, finishReason }) => {
+        if (isAborted) {
+          refundQuotaOnce()
+          return
+        }
+        // Refund when the model did not complete successfully (length still delivers partial output).
+        if (
+          finishReason &&
+          finishReason !== "stop" &&
+          finishReason !== "length"
+        ) {
+          refundQuotaOnce()
+        }
       },
       onError: (error) => {
         console.error("Solve API stream error:", error)
