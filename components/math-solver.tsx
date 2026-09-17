@@ -410,8 +410,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   // Keep partial content visible after stream errors; empty completions use ready status.
   const hasSolution =
     hasAssistantContent ||
-    isLoading ||
-    (hasAssistantMessage && status === "ready" && (!streamAborted || hasAssistantContent))
+    (isLoading && hasAssistantMessage) ||
+    (hasAssistantMessage &&
+      status === "ready" &&
+      (!streamAborted || hasAssistantContent))
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
