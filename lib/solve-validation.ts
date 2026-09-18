@@ -102,6 +102,81 @@ const messagePartSchema = z.union([textPartSchema, filePartSchema])
 /** Cheap structural checks before expensive image base64 decode. */
 const rawPartLoose = z.object({ type: z.string() }).passthrough()
 
+/** Text/injection checks on loose parts — before expensive image base64 decode. */
+function refineUserTextSemantics(
+  parts: z.infer<typeof rawPartLoose>[],
+  ctx: z.RefinementCtx,
+  pathPrefix: (string | number)[] = [],
+) {
+  const textParts = parts.filter((p) => p.type === "text")
+  const fileParts = parts.filter((p) => p.type === "file")
+  const textPart = textParts[0]
+  if (!textPart) return
+
+  if (typeof textPart.text !== "string") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid request structure",
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
+
+  const hasImage = fileParts.length === 1
+  const level = extractEducationLevel(textPart.text)
+  if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid request structure",
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
+
+  const rawUserContent = extractRawUserDisplayText(textPart.text)
+  if (containsForbiddenSoalMarkers(rawUserContent)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid request structure",
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
+
+  const soalIdx = textPart.text.indexOf(SOAL_SEPARATOR)
+  if (
+    !hasImage &&
+    soalIdx !== -1 &&
+    textPart.text
+      .slice(soalIdx + SOAL_SEPARATOR.length)
+      .startsWith(IMAGE_SOLVE_PROMPT)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid request structure",
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
+
+  const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
+  if (sanitized === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Teks soal wajib diisi.",
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
+  if (textPart.text !== sanitized) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid request structure",
+      path: [...pathPrefix, "parts"],
+    })
+  }
+}
+
 const messagePartsSchema = z
   .array(rawPartLoose)
   .min(1)
@@ -130,78 +205,15 @@ const messagePartsSchema = z
         path: [],
       })
     }
+    refineUserTextSemantics(parts, ctx)
   })
   .pipe(z.array(messagePartSchema))
 
-const uiMessageSchema = z
-  .object({
-    // Reject client-supplied assistant/system messages (prompt injection).
-    role: z.literal("user"),
-    parts: messagePartsSchema,
-  })
-  .superRefine((msg, ctx) => {
-    const textParts = msg.parts.filter((p) => p.type === "text")
-    const fileParts = msg.parts.filter((p) => p.type === "file")
-    const textPart = textParts[0]
-    if (textPart) {
-      if (typeof textPart.text !== "string") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Invalid request structure",
-          path: ["parts"],
-        })
-        return
-      }
-      const hasImage = fileParts.length === 1
-      const level = extractEducationLevel(textPart.text)
-      if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Invalid request structure",
-          path: ["parts"],
-        })
-      } else {
-        const rawUserContent = extractRawUserDisplayText(textPart.text)
-        if (containsForbiddenSoalMarkers(rawUserContent)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Invalid request structure",
-            path: ["parts"],
-          })
-        } else {
-          const soalIdx = textPart.text.indexOf(SOAL_SEPARATOR)
-          if (
-            !hasImage &&
-            soalIdx !== -1 &&
-            textPart.text
-              .slice(soalIdx + SOAL_SEPARATOR.length)
-              .startsWith(IMAGE_SOLVE_PROMPT)
-          ) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Invalid request structure",
-              path: ["parts"],
-            })
-          } else {
-            const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
-            if (sanitized === null) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Teks soal wajib diisi.",
-                path: ["parts"],
-              })
-            } else if (textPart.text !== sanitized) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Invalid request structure",
-                path: ["parts"],
-              })
-            }
-          }
-        }
-      }
-    }
-  })
+const uiMessageSchema = z.object({
+  // Reject client-supplied assistant/system messages (prompt injection).
+  role: z.literal("user"),
+  parts: messagePartsSchema,
+})
 
 export const solveRequestSchema = z.object({
   messages: z.array(uiMessageSchema).min(1).max(MAX_MESSAGES),
