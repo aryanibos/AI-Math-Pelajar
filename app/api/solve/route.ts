@@ -224,11 +224,26 @@ export async function POST(req: Request) {
           return { incomplete: true, finishReason: reason }
         }
       },
-      onFinish: ({ isAborted, finishReason }) => {
+      onFinish: ({ isAborted, finishReason, responseMessage }) => {
         if (isAborted) {
           refundQuotaOnce()
           return
         }
+
+        const assistantText =
+          responseMessage?.parts
+            ?.filter(
+              (p): p is { type: "text"; text: string } => p.type === "text",
+            )
+            .map((p) => p.text)
+            .join("\n")
+            .trim() ?? ""
+
+        if (!assistantText) {
+          refundQuotaOnce()
+          return
+        }
+
         // Refund when the model did not complete successfully (length still delivers partial output).
         if (
           finishReason &&
