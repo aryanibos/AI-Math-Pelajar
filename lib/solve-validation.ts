@@ -168,6 +168,24 @@ function refineUserTextSemantics(
       })
       return
     }
+    const base64 = filePart.url.slice(filePart.url.indexOf(",") + 1)
+    if (!hasValidBase64Sample(base64)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid image data URL",
+        path: [...pathPrefix, "parts"],
+      })
+      return
+    }
+    const sniffed = sniffImageMimeFromDataUrl(filePart.url)
+    if (!sniffed || normalizeImageMime(sniffed) !== normalizeImageMime(filePart.mediaType)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid image data URL",
+        path: [...pathPrefix, "parts"],
+      })
+      return
+    }
   }
 
   const hasImage = fileParts.length === 1
