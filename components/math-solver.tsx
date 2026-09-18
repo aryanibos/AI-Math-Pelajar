@@ -120,10 +120,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
           return response
         },
         // API accepts exactly one user message; filter role to allow retry after errors.
-        prepareSendMessagesRequest: ({ messages: msgs, ...rest }) => ({
+        prepareSendMessagesRequest: ({ id, messages, trigger, messageId, body }) => ({
           body: {
-            ...rest.body,
-            messages: msgs.filter((m) => m.role === "user").slice(-1),
+            ...body,
+            id,
+            trigger,
+            messageId,
+            messages: messages.filter((m) => m.role === "user").slice(-1),
           },
         }),
       }),
