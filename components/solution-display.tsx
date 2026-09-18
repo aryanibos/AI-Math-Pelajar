@@ -225,7 +225,7 @@ export function SolutionDisplay({
       .map(p => p.text)
       .join("\n")
     const processed = preprocessLatex(rawText)
-    return isLoading ? closeUnclosedMathDelimiters(processed) : processed
+    return closeUnclosedMathDelimiters(processed)
   }
 
   const solutionText = getAssistantText()

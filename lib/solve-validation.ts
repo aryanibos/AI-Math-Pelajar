@@ -122,6 +122,54 @@ function refineUserTextSemantics(
     return
   }
 
+  const normalizedText = normalizeLineEndings(textPart.text).trim()
+  if (normalizedText.length > MAX_TEXT_CHARS) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Teks soal maksimal ${MAX_TEXT_CHARS.toLocaleString("id-ID")} karakter.`,
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
+
+  for (const filePart of fileParts) {
+    if (
+      typeof filePart.url !== "string" ||
+      typeof filePart.mediaType !== "string"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid request structure",
+        path: [...pathPrefix, "parts"],
+      })
+      return
+    }
+    if (!ALLOWED_IMAGE_MIME_REGEX.test(filePart.mediaType)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid image data URL",
+        path: [...pathPrefix, "parts"],
+      })
+      return
+    }
+    if (!DATA_URL_IMAGE_RE.test(filePart.url)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid image data URL",
+        path: [...pathPrefix, "parts"],
+      })
+      return
+    }
+    if (estimateDataUrlBytes(filePart.url) > MAX_IMAGE_BYTES) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Image must be at most ${MAX_IMAGE_BYTES / (1024 * 1024)}MB`,
+        path: [...pathPrefix, "parts"],
+      })
+      return
+    }
+  }
+
   const hasImage = fileParts.length === 1
   const level = extractEducationLevel(textPart.text)
   if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {
