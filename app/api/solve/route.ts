@@ -109,6 +109,7 @@ export async function POST(req: Request) {
       )
     }
     if (raw.reason === "content_length_mismatch") {
+      refundQuotaOnce()
       return Response.json(
         { error: "Invalid Content-Length header" },
         { status: 400 },
