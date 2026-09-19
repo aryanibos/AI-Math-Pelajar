@@ -76,9 +76,11 @@ export function estimateSolveRequestBodyBytes(
     const mediaType = mimeMatch ? normalizeImageMime(mimeMatch[1]) : "image/jpeg"
     parts.push({ type: "file", mediaType, url: imageDataUrl })
   }
-  // Match useChat payload shape; JSON.stringify accounts for escape overhead.
+  // Match prepareSendMessagesRequest / useChat payload shape (incl. trigger + messageId).
   const body = {
     id: "00000000-0000-0000-0000-000000000000",
+    trigger: "submit-message",
+    messageId: "00000000-0000-0000-0000-000000000001",
     messages: [
       {
         role: "user",

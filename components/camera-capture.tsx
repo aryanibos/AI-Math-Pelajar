@@ -167,7 +167,12 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         ctx.drawImage(video, 0, 0, width, height)
 
         for (let quality = 0.9; quality >= 0.3; quality -= 0.1) {
-          imageData = canvas.toDataURL("image/jpeg", quality)
+          try {
+            imageData = canvas.toDataURL("image/jpeg", quality)
+          } catch {
+            imageData = ""
+            break
+          }
           if (estimateDataUrlBytes(imageData) <= MAX_IMAGE_BYTES) break outer
         }
       }
