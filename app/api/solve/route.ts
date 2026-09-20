@@ -21,6 +21,30 @@ import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
 
 export const maxDuration = 60
 
+const PRIVATE_CACHE_HEADERS: Record<string, string> = {
+  "Cache-Control": "no-store",
+  Pragma: "no-cache",
+}
+
+function privateJson(
+  body: unknown,
+  init?: ResponseInit,
+): Response {
+  const headers = new Headers(init?.headers)
+  for (const [key, value] of Object.entries(PRIVATE_CACHE_HEADERS)) {
+    headers.set(key, value)
+  }
+  return Response.json(body, { ...init, headers })
+}
+
+function privateEmpty(init?: ResponseInit): Response {
+  const headers = new Headers(init?.headers)
+  for (const [key, value] of Object.entries(PRIVATE_CACHE_HEADERS)) {
+    headers.set(key, value)
+  }
+  return new Response(null, { ...init, headers })
+}
+
 const systemPrompt = `Kamu adalah tutor matematika AI yang ramah dan sabar, khusus membantu siswa Indonesia menyelesaikan soal matematika.
 
 INSTRUKSI PENTING:
@@ -69,7 +93,7 @@ export async function POST(req: Request) {
 
   const rate = checkRateLimit(rateKey, rateLimit, RATE_LIMIT_WINDOW_MS)
   if (!rate.ok) {
-    return Response.json(
+    return privateJson(
       { error: "Too many requests. Please try again later." },
       {
         status: 429,
@@ -91,11 +115,11 @@ export async function POST(req: Request) {
   } catch (err) {
     if (req.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
       refundQuotaOnce()
-      return new Response(null, { status: 499 })
+      return privateEmpty({ status: 499 })
     }
     console.error("Solve API body read error:", err)
     refundQuotaOnce()
-    return Response.json(
+    return privateJson(
       { error: "Unable to read request body." },
       { status: 400 },
     )
@@ -103,28 +127,28 @@ export async function POST(req: Request) {
   if (!raw.ok) {
     if (raw.reason === "malformed_content_length") {
       refundQuotaOnce()
-      return Response.json(
+      return privateJson(
         { error: "Invalid Content-Length header" },
         { status: 400 },
       )
     }
     if (raw.reason === "content_length_mismatch") {
       refundQuotaOnce()
-      return Response.json(
+      return privateJson(
         { error: "Invalid Content-Length header" },
         { status: 400 },
       )
     }
     if (raw.reason === "incomplete_body") {
       refundQuotaOnce()
-      return Response.json(
+      return privateJson(
         { error: "Unable to read request body." },
         { status: 400 },
       )
     }
     if (raw.reason === "timeout") {
       refundQuotaOnce()
-      return Response.json(
+      return privateJson(
         { error: "Request body read timed out." },
         { status: 408 },
       )
@@ -132,25 +156,25 @@ export async function POST(req: Request) {
     if (raw.reason === "too_large") {
       // Body exceeded cap after client preflight — refund so users are not penalized.
       refundQuotaOnce()
-      return Response.json({ error: "Request body too large" }, { status: 413 })
+      return privateJson({ error: "Request body too large" }, { status: 413 })
     }
     refundQuotaOnce()
-    return Response.json({ error: "Unable to read request body." }, { status: 400 })
+    return privateJson({ error: "Unable to read request body." }, { status: 400 })
   }
 
   if (!raw.text) {
-    return Response.json({ error: "Empty request body" }, { status: 400 })
+    return privateJson({ error: "Empty request body" }, { status: 400 })
   }
 
   if (exceedsMaxJsonDepth(raw.text, MAX_JSON_DEPTH)) {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   let body: unknown
   try {
     body = JSON.parse(raw.text)
   } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 })
+    return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   let parsed
@@ -158,10 +182,10 @@ export async function POST(req: Request) {
     parsed = solveRequestSchema.safeParse(body)
   } catch (err) {
     console.error("Solve API validation error:", err)
-    return Response.json({ error: "Invalid request" }, { status: 400 })
+    return privateJson({ error: "Invalid request" }, { status: 400 })
   }
   if (!parsed.success) {
-    return Response.json(
+    return privateJson(
       { error: "Invalid request", details: zodFieldErrors(parsed.error) },
       { status: 400 },
     )
@@ -179,7 +203,7 @@ export async function POST(req: Request) {
   if (!rebuilt) {
     console.error("Solve API: rebuild failed after Zod parse")
     refundQuotaOnce()
-    return Response.json(
+    return privateJson(
       { error: "AI service unavailable. Please try again later." },
       { status: 503 },
     )
@@ -203,7 +227,7 @@ export async function POST(req: Request) {
   try {
     if (req.signal.aborted) {
       refundQuotaOnce()
-      return new Response(null, { status: 499 })
+      return privateEmpty({ status: 499 })
     }
 
     const result = streamText({
@@ -215,6 +239,7 @@ export async function POST(req: Request) {
     })
 
     return result.toUIMessageStreamResponse({
+      headers: PRIVATE_CACHE_HEADERS,
       messageMetadata: ({ part }) => {
         if (part.type !== "finish") return
         const reason = part.finishReason
@@ -265,11 +290,11 @@ export async function POST(req: Request) {
   } catch (err) {
     if (req.signal.aborted || (err instanceof Error && err.name === "AbortError")) {
       refundQuotaOnce()
-      return new Response(null, { status: 499 })
+      return privateEmpty({ status: 499 })
     }
     console.error("Solve API error:", err)
     refundQuotaOnce()
-    return Response.json(
+    return privateJson(
       { error: "AI service unavailable. Please try again later." },
       { status: 503 },
     )

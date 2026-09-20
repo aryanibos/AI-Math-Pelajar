@@ -4,7 +4,8 @@ import { useRef, useCallback, useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { X, Camera, SwitchCamera, Loader2 } from "lucide-react"
-import { MAX_IMAGE_BYTES, estimateDataUrlBytes } from "@/lib/solve-limits"
+import { MAX_IMAGE_BYTES } from "@/lib/solve-limits"
+import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void
@@ -146,56 +147,24 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
       return
     }
-    const canvas = canvasRef.current
-
-    const ctx = canvas.getContext("2d")
-    if (ctx) {
-      const { videoWidth: srcWidth, videoHeight: srcHeight } = video
-      let imageData = ""
-
-      outer: for (const maxEdge of [1600, 1200, 960, 720, 480, 360, 320]) {
-        let width = srcWidth
-        let height = srcHeight
-        if (width > maxEdge || height > maxEdge) {
-          const scale = maxEdge / Math.max(width, height)
-          width = Math.round(width * scale)
-          height = Math.round(height * scale)
-        }
-
-        canvas.width = width
-        canvas.height = height
+    const { videoWidth: srcWidth, videoHeight: srcHeight } = video
+    const imageData = compressCanvasToJpegDataUrl(
+      (ctx, width, height) => {
         ctx.drawImage(video, 0, 0, width, height)
+      },
+      srcWidth,
+      srcHeight,
+      MAX_IMAGE_BYTES,
+    )
 
-        for (let quality = 0.9; quality >= 0.3; quality -= 0.1) {
-          try {
-            imageData = canvas.toDataURL("image/jpeg", quality)
-          } catch {
-            imageData = ""
-            break
-          }
-          if (estimateDataUrlBytes(imageData) <= MAX_IMAGE_BYTES) break outer
-        }
-      }
-
-      if (
-        !imageData ||
-        estimateDataUrlBytes(imageData) === 0 ||
-        estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES
-      ) {
-        if (imageData && estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
-          setCaptureWarning(
-            `Gambar masih terlalu besar (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba ambil foto lebih dekat atau kurangi detail.`,
-          )
-        } else {
-          setError("Gagal menangkap gambar. Coba lagi.")
-        }
-        return
-      }
-
-      onCapture(imageData)
-    } else {
-      setError("Gagal menangkap gambar. Coba lagi.")
+    if (!imageData) {
+      setCaptureWarning(
+        `Gambar masih terlalu besar (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba ambil foto lebih dekat atau kurangi detail.`,
+      )
+      return
     }
+
+    onCapture(imageData)
   }, [onCapture, isVideoReady])
 
   const handleClose = useCallback(() => {

@@ -34,6 +34,7 @@ import {
   stripInvisibleChars,
 } from "@/lib/education-level"
 import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
+import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
 import { isValidImageDataUrl } from "@/lib/solve-validation"
 import { formatChatError } from "@/lib/format-chat-error"
 
@@ -241,20 +242,40 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     reader.onload = (event) => {
       if (!mountedRef.current || reader !== fileReaderRef.current) return
       const dataUrl = event.target?.result as string
-      if (estimateDataUrlBytes(dataUrl) > MAX_IMAGE_BYTES) {
-        setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
+      const img = new Image()
+      img.onload = () => {
+        if (!mountedRef.current || reader !== fileReaderRef.current) return
+        const compressed = compressCanvasToJpegDataUrl(
+          (ctx, width, height) => {
+            ctx.drawImage(img, 0, 0, width, height)
+          },
+          img.naturalWidth,
+          img.naturalHeight,
+          MAX_IMAGE_BYTES,
+        )
+        if (!compressed) {
+          setUploadError(
+            `Gambar terlalu besar setelah dikompresi (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba foto dengan resolusi lebih rendah.`,
+          )
+          if (fileInputRef.current) fileInputRef.current.value = ""
+          return
+        }
+        if (!isValidImageDataUrl(compressed)) {
+          setUploadError("Format gambar tidak valid.")
+          if (fileInputRef.current) fileInputRef.current.value = ""
+          return
+        }
+        imagePreviewValidatedRef.current = true
+        setImagePreview(compressed)
+        setInputMode("upload")
         if (fileInputRef.current) fileInputRef.current.value = ""
-        return
       }
-      if (!isValidImageDataUrl(dataUrl)) {
+      img.onerror = () => {
+        if (!mountedRef.current || reader !== fileReaderRef.current) return
         setUploadError("Format gambar tidak valid.")
         if (fileInputRef.current) fileInputRef.current.value = ""
-        return
       }
-      imagePreviewValidatedRef.current = true
-      setImagePreview(dataUrl)
-      setInputMode("upload")
-      if (fileInputRef.current) fileInputRef.current.value = ""
+      img.src = dataUrl
     }
     reader.onerror = () => {
       if (!mountedRef.current || reader !== fileReaderRef.current) return
