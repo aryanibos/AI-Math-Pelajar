@@ -123,6 +123,14 @@ function refineUserTextSemantics(
   }
 
   const normalizedText = normalizeLineEndings(textPart.text).trim()
+  if (!normalizedText) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Teks soal wajib diisi.",
+      path: [...pathPrefix, "parts"],
+    })
+    return
+  }
   if (normalizedText.length > MAX_TEXT_CHARS) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -189,8 +197,8 @@ function refineUserTextSemantics(
   }
 
   const hasImage = fileParts.length === 1
-  const level = extractEducationLevel(textPart.text)
-  if (!level || !textPart.text.startsWith(buildContextPrefix(level))) {
+  const level = extractEducationLevel(normalizedText)
+  if (!level || !normalizedText.startsWith(buildContextPrefix(level))) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Invalid request structure",
@@ -199,7 +207,7 @@ function refineUserTextSemantics(
     return
   }
 
-  const rawUserContent = extractRawUserDisplayText(textPart.text)
+  const rawUserContent = extractRawUserDisplayText(normalizedText)
   if (containsForbiddenSoalMarkers(rawUserContent)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -209,11 +217,11 @@ function refineUserTextSemantics(
     return
   }
 
-  const soalIdx = textPart.text.indexOf(SOAL_SEPARATOR)
+  const soalIdx = normalizedText.indexOf(SOAL_SEPARATOR)
   if (
     !hasImage &&
     soalIdx !== -1 &&
-    textPart.text
+    normalizedText
       .slice(soalIdx + SOAL_SEPARATOR.length)
       .startsWith(IMAGE_SOLVE_PROMPT)
   ) {
@@ -225,7 +233,7 @@ function refineUserTextSemantics(
     return
   }
 
-  const sanitized = rebuildSanitizedUserText(textPart.text, hasImage)
+  const sanitized = rebuildSanitizedUserText(normalizedText, hasImage)
   if (sanitized === null) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -234,7 +242,7 @@ function refineUserTextSemantics(
     })
     return
   }
-  if (textPart.text !== sanitized) {
+  if (normalizedText !== sanitized) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "Invalid request structure",
