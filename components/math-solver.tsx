@@ -220,6 +220,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         `Ukuran file terlalu besar (maks. ${MAX_BODY_BYTES / (1024 * 1024)}MB).`,
       )
       if (fileInputRef.current) fileInputRef.current.value = ""
+      setIsProcessingImageUpload(false)
       return
     }
 
@@ -445,6 +446,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     abortStream()
     fileReaderRef.current?.abort()
     fileReaderRef.current = null
+    setIsProcessingImageUpload(false)
     imagePreviewValidatedRef.current = false
     setTextInput("")
     setImagePreview(null)
