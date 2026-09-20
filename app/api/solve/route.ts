@@ -267,16 +267,6 @@ export async function POST(req: Request) {
 
         if (!assistantText) {
           refundQuotaOnce()
-          return
-        }
-
-        // Refund when the model did not complete successfully (length still delivers partial output).
-        if (
-          finishReason &&
-          finishReason !== "stop" &&
-          finishReason !== "length"
-        ) {
-          refundQuotaOnce()
         }
       },
       onError: (error) => {

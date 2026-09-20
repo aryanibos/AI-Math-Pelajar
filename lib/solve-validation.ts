@@ -251,6 +251,20 @@ function refineUserTextSemantics(
   }
 }
 
+/** AI SDK may send file-before-text; normalize to text-first for validation. */
+function normalizeMessagePartOrder(parts: unknown): unknown {
+  if (!Array.isArray(parts) || parts.length !== 2) return parts
+  const isText = (p: unknown) =>
+    typeof p === "object" && p !== null && (p as { type?: string }).type === "text"
+  const isFile = (p: unknown) =>
+    typeof p === "object" && p !== null && (p as { type?: string }).type === "file"
+  if (isText(parts[0])) return parts
+  const textPart = parts.find(isText)
+  const filePart = parts.find(isFile)
+  if (textPart && filePart) return [textPart, filePart]
+  return parts
+}
+
 const messagePartsSchema = z
   .array(rawPartLoose)
   .min(1)
@@ -272,13 +286,6 @@ const messagePartsSchema = z
         path: [],
       })
     }
-    if (parts.length === 2 && parts[0]?.type !== "text") {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Invalid request structure",
-        path: [],
-      })
-    }
     refineUserTextSemantics(parts, ctx)
   })
   .pipe(z.array(messagePartSchema))
@@ -286,7 +293,7 @@ const messagePartsSchema = z
 const uiMessageSchema = z.object({
   // Reject client-supplied assistant/system messages (prompt injection).
   role: z.literal("user"),
-  parts: messagePartsSchema,
+  parts: z.preprocess(normalizeMessagePartOrder, messagePartsSchema),
 })
 
 export const solveRequestSchema = z.object({

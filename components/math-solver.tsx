@@ -56,6 +56,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [showCamera, setShowCamera] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isProcessingImageUpload, setIsProcessingImageUpload] = useState(false)
   const [streamAborted, setStreamAborted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileReaderRef = useRef<FileReader | null>(null)
@@ -208,6 +209,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       return
     }
 
+    setIsProcessingImageUpload(true)
+    setImagePreview(null)
+    imagePreviewValidatedRef.current = false
+    setInputMode("upload")
+
     // Allow larger raw files — compressCanvasToJpegDataUrl shrinks like camera capture.
     if (file.size > MAX_BODY_BYTES) {
       setUploadError(
@@ -223,6 +229,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     } catch {
       setUploadError("Gagal membaca file gambar.")
       if (fileInputRef.current) fileInputRef.current.value = ""
+      setIsProcessingImageUpload(false)
       return
     }
 
@@ -230,18 +237,21 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (!sniffed || !isAllowedImageMime(sniffed)) {
       setUploadError("Format gambar tidak valid.")
       if (fileInputRef.current) fileInputRef.current.value = ""
+      setIsProcessingImageUpload(false)
       return
     }
 
     if (normalizeImageMime(fileMime) !== sniffed) {
       setUploadError("Format gambar tidak cocok dengan tipe file.")
       if (fileInputRef.current) fileInputRef.current.value = ""
+      setIsProcessingImageUpload(false)
       return
     }
 
     fileReaderRef.current?.abort()
     const reader = new FileReader()
     fileReaderRef.current = reader
+    const finishProcessing = () => setIsProcessingImageUpload(false)
     reader.onload = (event) => {
       if (!mountedRef.current || reader !== fileReaderRef.current) return
       const dataUrl = event.target?.result as string
@@ -261,30 +271,37 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             `Gambar terlalu besar setelah dikompresi (maks. ${MAX_IMAGE_BYTES / (1024 * 1024)}MB). Coba foto dengan resolusi lebih rendah.`,
           )
           if (fileInputRef.current) fileInputRef.current.value = ""
+          finishProcessing()
           return
         }
         if (!isValidImageDataUrl(compressed)) {
           setUploadError("Format gambar tidak valid.")
           if (fileInputRef.current) fileInputRef.current.value = ""
+          finishProcessing()
           return
         }
         imagePreviewValidatedRef.current = true
         setImagePreview(compressed)
-        setInputMode("upload")
         if (fileInputRef.current) fileInputRef.current.value = ""
+        finishProcessing()
       }
       img.onerror = () => {
         if (!mountedRef.current || reader !== fileReaderRef.current) return
         setUploadError("Format gambar tidak valid.")
         if (fileInputRef.current) fileInputRef.current.value = ""
+        finishProcessing()
       }
       img.src = dataUrl
     }
     reader.onerror = () => {
       if (!mountedRef.current || reader !== fileReaderRef.current) return
-      if (reader.error?.name === "AbortError") return
+      if (reader.error?.name === "AbortError") {
+        finishProcessing()
+        return
+      }
       setUploadError("Gagal membaca file gambar.")
       if (fileInputRef.current) fileInputRef.current.value = ""
+      finishProcessing()
     }
     reader.readAsDataURL(file)
   }, [clearError])
@@ -653,7 +670,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               )}
 
               {/* Image Preview Mode */}
-              {(inputMode === "upload" || inputMode === "camera") && imagePreview && (
+              {(inputMode === "upload" || inputMode === "camera") &&
+                (imagePreview || isProcessingImageUpload) && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -671,6 +689,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                         fileReaderRef.current = null
                         imagePreviewValidatedRef.current = false
                         setImagePreview(null)
+                        setIsProcessingImageUpload(false)
                         setInputMode(null)
                         setUploadError(null)
                         clearError()
@@ -682,11 +701,18 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   </div>
                   
                   <div className="relative overflow-hidden rounded-2xl border border-border bg-muted">
-                    <img
-                      src={imagePreview || "/placeholder.svg"}
-                      alt="Preview soal"
-                      className="mx-auto max-h-[400px] w-auto object-contain"
-                    />
+                    {isProcessingImageUpload && !imagePreview ? (
+                      <div className="flex min-h-[200px] items-center justify-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        Memproses gambar...
+                      </div>
+                    ) : (
+                      <img
+                        src={imagePreview || "/placeholder.svg"}
+                        alt="Preview soal"
+                        className="mx-auto max-h-[400px] w-auto object-contain"
+                      />
+                    )}
                   </div>
 
                   <Textarea
@@ -698,7 +724,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   
                   <Button
                     onClick={handleSubmit}
-                    disabled={isLoading}
+                    disabled={isLoading || isProcessingImageUpload || !imagePreview}
                     className="w-full gap-2"
                     size="lg"
                   >
