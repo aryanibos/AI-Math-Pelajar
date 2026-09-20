@@ -208,8 +208,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       return
     }
 
-    if (file.size > MAX_IMAGE_BYTES) {
-      setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB.`)
+    // Allow larger raw files — compressCanvasToJpegDataUrl shrinks like camera capture.
+    if (file.size > MAX_BODY_BYTES) {
+      setUploadError(
+        `Ukuran file terlalu besar (maks. ${MAX_BODY_BYTES / (1024 * 1024)}MB).`,
+      )
       if (fileInputRef.current) fileInputRef.current.value = ""
       return
     }
