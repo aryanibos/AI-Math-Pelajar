@@ -320,19 +320,26 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setUploadError(null)
     clearError()
 
+    const failCapture = (message: string) => {
+      setUploadError(message)
+      setShowCamera(false)
+    }
+
     if (estimateDataUrlBytes(imageData) > MAX_IMAGE_BYTES) {
-      setUploadError(`Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB. Coba ambil foto lebih dekat.`)
+      failCapture(
+        `Ukuran gambar maksimal ${MAX_IMAGE_BYTES / (1024 * 1024)}MB. Coba ambil foto lebih dekat.`,
+      )
       return
     }
 
     const sniffed = sniffImageMimeFromDataUrl(imageData)
     if (!sniffed || !isAllowedImageMime(sniffed)) {
-      setUploadError("Format gambar tidak valid.")
+      failCapture("Format gambar tidak valid.")
       return
     }
 
     if (!isValidImageDataUrl(imageData)) {
-      setUploadError("Format gambar tidak valid.")
+      failCapture("Format gambar tidak valid.")
       return
     }
 
