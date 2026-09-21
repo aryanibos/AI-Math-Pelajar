@@ -148,6 +148,13 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       return
     }
     const { videoWidth: srcWidth, videoHeight: srcHeight } = video
+
+    const canvas = canvasRef.current
+    if (!canvas?.getContext("2d")) {
+      setError("Tidak dapat memproses gambar. Coba muat ulang halaman.")
+      return
+    }
+
     const imageData = compressCanvasToJpegDataUrl(
       (ctx, width, height) => {
         ctx.drawImage(video, 0, 0, width, height)
