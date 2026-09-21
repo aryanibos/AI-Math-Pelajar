@@ -221,6 +221,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       )
       if (fileInputRef.current) fileInputRef.current.value = ""
       setIsProcessingImageUpload(false)
+      setInputMode(null)
       return
     }
 
@@ -231,6 +232,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setUploadError("Gagal membaca file gambar.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       setIsProcessingImageUpload(false)
+      setInputMode(null)
       return
     }
 
@@ -239,6 +241,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setUploadError("Format gambar tidak valid.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       setIsProcessingImageUpload(false)
+      setInputMode(null)
       return
     }
 
@@ -246,6 +249,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setUploadError("Format gambar tidak cocok dengan tipe file.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       setIsProcessingImageUpload(false)
+      setInputMode(null)
       return
     }
 
@@ -273,12 +277,14 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
           )
           if (fileInputRef.current) fileInputRef.current.value = ""
           finishProcessing()
+          setInputMode(null)
           return
         }
         if (!isValidImageDataUrl(compressed)) {
           setUploadError("Format gambar tidak valid.")
           if (fileInputRef.current) fileInputRef.current.value = ""
           finishProcessing()
+          setInputMode(null)
           return
         }
         imagePreviewValidatedRef.current = true
@@ -291,6 +297,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         setUploadError("Format gambar tidak valid.")
         if (fileInputRef.current) fileInputRef.current.value = ""
         finishProcessing()
+        setInputMode(null)
       }
       img.src = dataUrl
     }
@@ -298,11 +305,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       if (!mountedRef.current || reader !== fileReaderRef.current) return
       if (reader.error?.name === "AbortError") {
         finishProcessing()
+        setInputMode(null)
         return
       }
       setUploadError("Gagal membaca file gambar.")
       if (fileInputRef.current) fileInputRef.current.value = ""
       finishProcessing()
+      setInputMode(null)
     }
     reader.readAsDataURL(file)
   }, [clearError])
