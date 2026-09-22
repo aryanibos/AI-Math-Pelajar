@@ -33,9 +33,8 @@ import {
   stripEmbeddedScaffolding,
   stripInvisibleChars,
 } from "@/lib/education-level"
-import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl } from "@/lib/solve-limits"
+import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl } from "@/lib/solve-limits"
 import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
-import { isValidImageDataUrl } from "@/lib/solve-validation"
 import { formatChatError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {

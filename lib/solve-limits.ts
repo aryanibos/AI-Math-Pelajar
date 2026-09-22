@@ -191,3 +191,30 @@ export function sniffImageMimeFromDataUrl(dataUrl: string): string | null {
     return null
   }
 }
+
+export const DATA_URL_IMAGE_RE =
+  /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i
+
+/** Shared client/server image data URL validation (strict shape + sniff). */
+export function isValidImageDataUrl(url: string): boolean {
+  if (!DATA_URL_IMAGE_RE.test(url)) return false
+  if (estimateDataUrlBytes(url) > MAX_IMAGE_BYTES) return false
+
+  const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
+  const sniffed = sniffImageMimeFromDataUrl(url)
+  if (!declared || !sniffed) return false
+  if (normalizeImageMime(declared) !== sniffed) return false
+
+  const base64 = url.slice(url.indexOf(",") + 1)
+  if (!hasValidBase64Sample(base64)) return false
+
+  const bytes = decodeImageDataUrlBytes(url)
+  if (!bytes) return false
+  if (bytes.length !== estimateDataUrlBytes(url)) return false
+  const resniff = sniffImageMimeFromBytes(bytes)
+  if (!resniff || normalizeImageMime(resniff) !== normalizeImageMime(declared)) {
+    return false
+  }
+
+  return true
+}

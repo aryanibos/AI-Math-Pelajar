@@ -10,44 +10,18 @@ import {
 } from "./education-level"
 import {
   ALLOWED_IMAGE_MIME_REGEX,
-  decodeImageDataUrlBytes,
+  DATA_URL_IMAGE_RE,
   estimateDataUrlBytes,
   hasValidBase64Sample,
+  isValidImageDataUrl,
   MAX_IMAGE_BYTES,
   MAX_MESSAGES,
   MAX_TEXT_CHARS,
   normalizeImageMime,
-  sniffImageMimeFromBytes,
   sniffImageMimeFromDataUrl,
 } from "./solve-limits"
 
-const DATA_URL_IMAGE_RE =
-  /^data:image\/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/i
-
-/** Shared client/server image data URL validation (strict shape + sniff). */
-export function isValidImageDataUrl(url: string): boolean {
-  if (!DATA_URL_IMAGE_RE.test(url)) return false
-  if (estimateDataUrlBytes(url) > MAX_IMAGE_BYTES) return false
-
-  const declared = url.match(/^data:(image\/[^;]+)/i)?.[1]
-  const sniffed = sniffImageMimeFromDataUrl(url)
-  if (!declared || !sniffed) return false
-  if (normalizeImageMime(declared) !== sniffed) return false
-
-  const base64 = url.slice(url.indexOf(",") + 1)
-  if (!hasValidBase64Sample(base64)) return false
-
-  // Full decode — rejects truncated/corrupt payloads that pass sampling (client + server).
-  const bytes = decodeImageDataUrlBytes(url)
-  if (!bytes) return false
-  if (bytes.length !== estimateDataUrlBytes(url)) return false
-  const resniff = sniffImageMimeFromBytes(bytes)
-  if (!resniff || normalizeImageMime(resniff) !== normalizeImageMime(declared)) {
-    return false
-  }
-
-  return true
-}
+export { isValidImageDataUrl } from "./solve-limits"
 
 const dataUrlImageSchema = z
   .string()
@@ -334,4 +308,16 @@ export function zodFieldErrors(error: z.ZodError): Record<string, string[]> {
 
   collect(error.issues)
   return out
+}
+
+/** Collapse Zod paths to a single bucket for API responses (no field-path leakage). */
+export function zodUserFacingDetails(error: z.ZodError): Record<string, string[]> {
+  const flat = zodFieldErrors(error)
+  const messages: string[] = []
+  for (const key of Object.keys(flat).sort()) {
+    for (const msg of flat[key] ?? []) {
+      if (!messages.includes(msg)) messages.push(msg)
+    }
+  }
+  return { messages: messages.length ? messages : ["Invalid request"] }
 }

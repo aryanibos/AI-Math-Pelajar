@@ -4,7 +4,11 @@ import {
   LEVEL_DESCRIPTIONS,
   rebuildSanitizedUserText,
 } from "@/lib/education-level"
-import { solveRequestSchema, zodFieldErrors } from "@/lib/solve-validation"
+import {
+  solveRequestSchema,
+  zodFieldErrors,
+  zodUserFacingDetails,
+} from "@/lib/solve-validation"
 import {
   MAX_BODY_BYTES,
   MAX_JSON_DEPTH,
@@ -185,10 +189,11 @@ export async function POST(req: Request) {
     return privateJson({ error: "Invalid request" }, { status: 400 })
   }
   if (!parsed.success) {
-    return privateJson(
-      { error: "Invalid request", details: zodFieldErrors(parsed.error) },
-      { status: 400 },
-    )
+    const details =
+      process.env.NODE_ENV === "production"
+        ? zodUserFacingDetails(parsed.error)
+        : zodFieldErrors(parsed.error)
+    return privateJson({ error: "Invalid request", details }, { status: 400 })
   }
 
   const { messages } = parsed.data
