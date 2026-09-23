@@ -167,6 +167,7 @@ export async function POST(req: Request) {
   }
 
   if (!raw.text) {
+    refundQuotaOnce()
     return privateJson({ error: "Empty request body" }, { status: 400 })
   }
 
