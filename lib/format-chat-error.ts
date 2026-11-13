@@ -1,6 +1,8 @@
 const ERROR_MESSAGES: Record<string, string> = {
   "Too many requests. Please try again later.":
     "Terlalu banyak permintaan. Silakan coba lagi nanti.",
+  "Too many active clients. Please try again later.":
+    "Server sibuk. Silakan coba lagi nanti.",
   "Request body too large": "Ukuran permintaan terlalu besar.",
   "Invalid JSON body": "Permintaan tidak valid.",
   "Empty request body": "Permintaan kosong. Silakan kirim soal Anda.",

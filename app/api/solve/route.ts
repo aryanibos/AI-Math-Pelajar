@@ -98,8 +98,12 @@ export async function POST(req: Request) {
 
   const rate = checkRateLimit(rateKey, rateLimit, RATE_LIMIT_WINDOW_MS)
   if (!rate.ok) {
+    const error =
+      rate.reason === "bucket_capacity"
+        ? "Too many active clients. Please try again later."
+        : "Too many requests. Please try again later."
     return privateJson(
-      { error: "Too many requests. Please try again later." },
+      { error },
       {
         status: 429,
         headers: { "Retry-After": String(rate.retryAfterSec) },

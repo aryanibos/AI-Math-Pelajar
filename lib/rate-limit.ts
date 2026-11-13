@@ -46,11 +46,26 @@ function oldestActiveResetAt(now: number): number {
   return oldest === Number.POSITIVE_INFINITY ? now + 60_000 : oldest
 }
 
+export type RateLimitResult =
+  | { ok: true }
+  | {
+      ok: false
+      retryAfterSec: number
+      /** Hourly cap exhausted for this client key. */
+      reason: "rate_limited"
+    }
+  | {
+      ok: false
+      retryAfterSec: number
+      /** No free bucket slots (distinct keys at MAX_BUCKETS); client is not over quota. */
+      reason: "bucket_capacity"
+    }
+
 export function checkRateLimit(
   key: string,
   limit: number,
   windowMs: number,
-): { ok: true } | { ok: false; retryAfterSec: number } {
+): RateLimitResult {
   const now = Date.now()
   pruneExpiredBuckets(now)
   pruneExpiredRefundBuckets(now)
@@ -62,6 +77,7 @@ export function checkRateLimit(
       // grant a fresh hourly quota. Rely on pruneExpiredBuckets to free slots instead.
       return {
         ok: false,
+        reason: "bucket_capacity",
         retryAfterSec: Math.ceil((oldestActiveResetAt(now) - now) / 1000),
       }
     }
@@ -70,7 +86,11 @@ export function checkRateLimit(
   }
 
   if (bucket.count >= limit) {
-    return { ok: false, retryAfterSec: Math.ceil((bucket.resetAt - now) / 1000) }
+    return {
+      ok: false,
+      reason: "rate_limited",
+      retryAfterSec: Math.ceil((bucket.resetAt - now) / 1000),
+    }
   }
 
   bucket.count += 1
