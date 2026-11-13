@@ -146,6 +146,9 @@ export async function POST(req: Request) {
     }
     if (raw.reason === "incomplete_body") {
       refundQuotaOnce()
+      if (req.signal.aborted) {
+        return privateEmpty({ status: 499 })
+      }
       return privateJson(
         { error: "Unable to read request body." },
         { status: 400 },
