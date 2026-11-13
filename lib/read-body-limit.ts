@@ -11,6 +11,13 @@ export type BodyReadFailureReason =
   | "too_large"
   | "timeout"
 
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (!signal?.aborted) return
+  throw signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException("Aborted", "AbortError")
+}
+
 export async function readRequestBodyWithLimit(
   req: Request,
   maxBytes: number,
@@ -108,6 +115,7 @@ export async function readRequestBodyWithLimit(
       const remainingMs = deadline - Date.now()
       if (remainingMs <= 0) {
         await reader.cancel().catch(() => {})
+        throwIfAborted(signal)
         return { ok: false, reason: "timeout" }
       }
       const { done, value } = await readChunk(remainingMs)
@@ -129,6 +137,7 @@ export async function readRequestBodyWithLimit(
   } catch (err) {
     await reader.cancel().catch(() => {})
     if (err instanceof Error && err.name === "TimeoutError") {
+      throwIfAborted(signal)
       return { ok: false, reason: "timeout" }
     }
     throw err

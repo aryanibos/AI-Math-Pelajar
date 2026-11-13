@@ -156,6 +156,9 @@ export async function POST(req: Request) {
     }
     if (raw.reason === "timeout") {
       refundQuotaOnce()
+      if (req.signal.aborted) {
+        return privateEmpty({ status: 499 })
+      }
       return privateJson(
         { error: "Request body read timed out." },
         { status: 408 },
