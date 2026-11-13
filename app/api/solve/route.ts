@@ -14,6 +14,7 @@ import {
   MAX_JSON_DEPTH,
   RATE_LIMIT_WINDOW_MS,
   exceedsMaxJsonDepth,
+  stripUtf8Bom,
 } from "@/lib/solve-limits"
 import {
   checkRateLimit,
@@ -171,13 +172,15 @@ export async function POST(req: Request) {
     return privateJson({ error: "Empty request body" }, { status: 400 })
   }
 
-  if (exceedsMaxJsonDepth(raw.text, MAX_JSON_DEPTH)) {
+  const jsonText = stripUtf8Bom(raw.text)
+
+  if (exceedsMaxJsonDepth(jsonText, MAX_JSON_DEPTH)) {
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   let body: unknown
   try {
-    body = JSON.parse(raw.text)
+    body = JSON.parse(jsonText)
   } catch {
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }

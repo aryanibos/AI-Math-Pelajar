@@ -28,6 +28,11 @@ export function isAllowedImageMime(mime: string): boolean {
   return ALLOWED_IMAGE_MIME_REGEX.test(normalizeImageMime(mime))
 }
 
+/** Strip a leading UTF-8 BOM so `JSON.parse` accepts otherwise valid JSON bodies. */
+export function stripUtf8Bom(raw: string): string {
+  return raw.length > 0 && raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw
+}
+
 /** Reject deeply nested JSON before parse (DoS guard; string-aware). */
 export function exceedsMaxJsonDepth(raw: string, maxDepth: number): boolean {
   let depth = 0
