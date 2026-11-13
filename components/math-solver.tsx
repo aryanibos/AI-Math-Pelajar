@@ -546,10 +546,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-6">
-        {((error && !hasAssistantContent && !isLoading) || uploadError) && (
+        {(uploadError ||
+          (error && !hasAssistantContent && !isLoading)) && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              {error ? formatChatError(error.message) : uploadError}
+              {uploadError ?? formatChatError(error!.message)}
             </AlertDescription>
           </Alert>
         )}

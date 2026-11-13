@@ -174,6 +174,11 @@ export async function POST(req: Request) {
 
   const jsonText = stripUtf8Bom(raw.text)
 
+  if (!jsonText.trim()) {
+    refundQuotaOnce()
+    return privateJson({ error: "Empty request body" }, { status: 400 })
+  }
+
   if (exceedsMaxJsonDepth(jsonText, MAX_JSON_DEPTH)) {
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
