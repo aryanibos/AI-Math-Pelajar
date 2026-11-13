@@ -187,7 +187,11 @@ export async function POST(req: Request) {
     parsed = solveRequestSchema.safeParse(body)
   } catch (err) {
     console.error("Solve API validation error:", err)
-    return privateJson({ error: "Invalid request" }, { status: 400 })
+    refundQuotaOnce()
+    return privateJson(
+      { error: "AI service unavailable. Please try again later." },
+      { status: 503 },
+    )
   }
   if (!parsed.success) {
     const details =

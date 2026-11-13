@@ -53,7 +53,7 @@ export function exceedsMaxJsonDepth(raw: string, maxDepth: number): boolean {
       if (depth < 0) return true
     }
   }
-  return depth !== 0
+  return depth !== 0 || inString
 }
 
 export function estimateDataUrlBytes(dataUrl: string): number {
