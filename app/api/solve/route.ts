@@ -13,7 +13,7 @@ import {
   MAX_BODY_BYTES,
   MAX_JSON_DEPTH,
   RATE_LIMIT_WINDOW_MS,
-  exceedsMaxJsonDepth,
+  getJsonPreParseRejectReason,
   stripUtf8Bom,
 } from "@/lib/solve-limits"
 import {
@@ -189,14 +189,27 @@ export async function POST(req: Request) {
     return privateJson({ error: "Empty request body" }, { status: 400 })
   }
 
-  if (exceedsMaxJsonDepth(jsonText, MAX_JSON_DEPTH)) {
+  const jsonRejectReason = getJsonPreParseRejectReason(
+    jsonText,
+    MAX_JSON_DEPTH,
+  )
+  if (jsonRejectReason) {
+    if (jsonRejectReason === "unterminated") {
+      refundQuotaOnce()
+    }
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
 
   let body: unknown
   try {
     body = JSON.parse(jsonText)
-  } catch {
+  } catch (err) {
+    if (
+      err instanceof SyntaxError &&
+      /Unexpected end of JSON input/i.test(err.message)
+    ) {
+      refundQuotaOnce()
+    }
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
 

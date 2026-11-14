@@ -33,8 +33,16 @@ export function stripUtf8Bom(raw: string): string {
   return raw.length > 0 && raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw
 }
 
-/** Reject deeply nested JSON before parse (DoS guard; string-aware). */
-export function exceedsMaxJsonDepth(raw: string, maxDepth: number): boolean {
+export type JsonPreParseRejectReason =
+  | "max_depth"
+  | "unbalanced"
+  | "unterminated"
+
+/** String-aware scan before `JSON.parse` — depth DoS, garbage, or truncated body. */
+export function getJsonPreParseRejectReason(
+  raw: string,
+  maxDepth: number,
+): JsonPreParseRejectReason | null {
   let depth = 0
   let inString = false
   let escaped = false
@@ -52,13 +60,19 @@ export function exceedsMaxJsonDepth(raw: string, maxDepth: number): boolean {
     }
     if (c === "{" || c === "[") {
       depth++
-      if (depth > maxDepth) return true
+      if (depth > maxDepth) return "max_depth"
     } else if (c === "}" || c === "]") {
       depth--
-      if (depth < 0) return true
+      if (depth < 0) return "unbalanced"
     }
   }
-  return depth !== 0 || inString
+  if (depth !== 0 || inString) return "unterminated"
+  return null
+}
+
+/** Reject deeply nested JSON before parse (DoS guard; string-aware). */
+export function exceedsMaxJsonDepth(raw: string, maxDepth: number): boolean {
+  return getJsonPreParseRejectReason(raw, maxDepth) !== null
 }
 
 export function estimateDataUrlBytes(dataUrl: string): number {
