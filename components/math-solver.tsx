@@ -33,7 +33,7 @@ import {
   stripEmbeddedScaffolding,
   stripInvisibleChars,
 } from "@/lib/education-level"
-import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl } from "@/lib/solve-limits"
+import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl, stripUtf8Bom } from "@/lib/solve-limits"
 import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
 import { formatChatError, resolveSolveTransportError } from "@/lib/format-chat-error"
 
@@ -71,7 +71,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         fetch: async (input, init) => {
           const response = await fetch(input, init)
           if (!response.ok) {
-            const text = (await response.text()) || ""
+            const text = stripUtf8Bom((await response.text()) || "")
             if (response.status === 499) {
               throw new Error(JSON.stringify({ error: "Request cancelled." }))
             }

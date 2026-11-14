@@ -1,3 +1,5 @@
+import { stripUtf8Bom } from "@/lib/solve-limits"
+
 /** Exact `error` strings returned by `/api/solve` (JSON or rare plain-text proxies). */
 const ERROR_MESSAGES: Record<string, string> = {
   "Too many requests. Please try again later.":
@@ -37,7 +39,7 @@ const API_PLAIN_ERROR_KEYS = new Set(Object.keys(ERROR_MESSAGES))
 
 /** When a proxy returns a non-JSON body, recognize known API error copy for transport fallbacks. */
 export function recognizeApiPlainError(text: string): string | undefined {
-  const trimmed = text.trim()
+  const trimmed = stripUtf8Bom(text).trim()
   if (!trimmed || !API_PLAIN_ERROR_KEYS.has(trimmed)) return undefined
   return trimmed
 }
