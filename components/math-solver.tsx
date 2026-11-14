@@ -108,7 +108,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     ? "Too many requests. Please try again later."
                     : response.status === 413
                       ? "Request body too large"
-                      : "Failed to fetch the chat response."
+                      : response.status === 408
+                        ? "Request body read timed out."
+                        : "Failed to fetch the chat response."
               throw new Error(
                 JSON.stringify({
                   error: fallbackError,
