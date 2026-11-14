@@ -35,7 +35,7 @@ import {
 } from "@/lib/education-level"
 import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl } from "@/lib/solve-limits"
 import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
-import { formatChatError, recognizeApiPlainError } from "@/lib/format-chat-error"
+import { formatChatError, resolveSolveTransportError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
   level: NonNullable<EducationLevel>
@@ -87,19 +87,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               }
               throw new Error(
                 JSON.stringify({
-                  error:
-                    parsed.error ??
-                    (response.status >= 500
-                      ? "AI service unavailable. Please try again later."
-                      : response.status === 429
-                        ? "Too many requests. Please try again later."
-                        : response.status === 413
-                          ? "Request body too large"
-                          : response.status === 408
-                            ? "Request body read timed out."
-                            : response.status === 400
-                              ? "Invalid request"
-                              : "Failed to fetch the chat response."),
+                  error: resolveSolveTransportError(
+                    response.status,
+                    parsed.error,
+                    text,
+                  ),
                   details: parsed.details,
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
@@ -107,23 +99,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               )
             } catch (err) {
               if (err instanceof Error && err.message.startsWith("{")) throw err
-              const plainApiError = recognizeApiPlainError(text)
-              const fallbackError =
-                plainApiError ??
-                (response.status >= 500
-                  ? "AI service unavailable. Please try again later."
-                  : response.status === 429
-                    ? "Too many requests. Please try again later."
-                    : response.status === 413
-                      ? "Request body too large"
-                      : response.status === 408
-                        ? "Request body read timed out."
-                        : response.status === 400
-                          ? "Invalid request"
-                          : "Failed to fetch the chat response.")
               throw new Error(
                 JSON.stringify({
-                  error: fallbackError,
+                  error: resolveSolveTransportError(response.status, undefined, text),
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
                 }),

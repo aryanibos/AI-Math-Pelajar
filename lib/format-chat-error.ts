@@ -42,6 +42,35 @@ export function recognizeApiPlainError(text: string): string | undefined {
   return trimmed
 }
 
+/** Shared HTTP → `error` string for `/api/solve` transport (JSON and non-JSON bodies). */
+export function solveHttpErrorMessage(status: number): string {
+  if (status >= 500) return "AI service unavailable. Please try again later."
+  if (status === 429) return "Too many requests. Please try again later."
+  if (status === 413) return "Request body too large"
+  if (status === 408) return "Request body read timed out."
+  if (status === 400) return "Invalid request"
+  return "Failed to fetch the chat response."
+}
+
+function normalizeApiErrorField(error: unknown): string | undefined {
+  if (typeof error !== "string") return undefined
+  const trimmed = error.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+/** Prefer API JSON `error`, then known plain-text bodies, then status fallbacks. */
+export function resolveSolveTransportError(
+  status: number,
+  jsonError: unknown,
+  plainBody = "",
+): string {
+  return (
+    normalizeApiErrorField(jsonError) ??
+    recognizeApiPlainError(plainBody) ??
+    solveHttpErrorMessage(status)
+  )
+}
+
 function translateDetail(detail: string): string {
   if (DETAIL_MESSAGES[detail]) return DETAIL_MESSAGES[detail]
   const textLengthMatch = detail.match(
