@@ -35,7 +35,7 @@ import {
 } from "@/lib/education-level"
 import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl } from "@/lib/solve-limits"
 import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
-import { formatChatError } from "@/lib/format-chat-error"
+import { formatChatError, recognizeApiPlainError } from "@/lib/format-chat-error"
 
 interface MathSolverProps {
   level: NonNullable<EducationLevel>
@@ -101,8 +101,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               )
             } catch (err) {
               if (err instanceof Error && err.message.startsWith("{")) throw err
+              const plainApiError = recognizeApiPlainError(text)
               const fallbackError =
-                response.status >= 500
+                plainApiError ??
+                (response.status >= 500
                   ? "AI service unavailable. Please try again later."
                   : response.status === 429
                     ? "Too many requests. Please try again later."
@@ -112,7 +114,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                         ? "Request body read timed out."
                         : response.status === 400
                           ? "Invalid request"
-                          : "Failed to fetch the chat response."
+                          : "Failed to fetch the chat response.")
               throw new Error(
                 JSON.stringify({
                   error: fallbackError,
