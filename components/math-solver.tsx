@@ -89,11 +89,17 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 JSON.stringify({
                   error:
                     parsed.error ??
-                    (response.status === 429
-                      ? "Too many requests. Please try again later."
-                      : response.status === 413
-                        ? "Request body too large"
-                        : "Failed to fetch the chat response."),
+                    (response.status >= 500
+                      ? "AI service unavailable. Please try again later."
+                      : response.status === 429
+                        ? "Too many requests. Please try again later."
+                        : response.status === 413
+                          ? "Request body too large"
+                          : response.status === 408
+                            ? "Request body read timed out."
+                            : response.status === 400
+                              ? "Invalid request"
+                              : "Failed to fetch the chat response."),
                   details: parsed.details,
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
