@@ -106,13 +106,25 @@ function formatRetryAfter(retryAfterSec: number): string {
   return `Coba lagi dalam ${minutes} menit.`
 }
 
+function isFetchAbortMessage(message: string): boolean {
+  const trimmed = message.trim()
+  if (trimmed === "AbortError" || trimmed === "Request cancelled.") return true
+  const core = trimmed.replace(/^(DOMException|AbortError):\s*/i, "").trim()
+  if (core === "Aborted" || core === "AbortError") return true
+  if (/^The user aborted a request\.?$/i.test(trimmed)) return true
+  if (/^The operation was aborted\.?$/i.test(trimmed)) return true
+  if (/^Fetch is aborted\.?$/i.test(trimmed)) return true
+  return false
+}
+
 function isExplicitCancellation(parsed: {
   error?: string
   name?: string
 }): boolean {
   return (
     parsed.error === "Request cancelled." ||
-    parsed.name === "AbortError"
+    parsed.name === "AbortError" ||
+    (typeof parsed.error === "string" && isFetchAbortMessage(parsed.error))
   )
 }
 
@@ -126,7 +138,14 @@ function isBrowserOfflineError(message: string): boolean {
   if (/NetworkError when attempting to fetch resource/i.test(trimmed)) {
     return true
   }
-  const core = trimmed.replace(/^TypeError:\s*/i, "").trim()
+  if (/internet connection appears to be offline/i.test(trimmed)) return true
+  if (
+    /Failed to execute ['"]fetch['"] on /i.test(trimmed) &&
+    /\bFailed to fetch\b/.test(trimmed)
+  ) {
+    return true
+  }
+  const core = trimmed.replace(/^(TypeError|Error):\s*/i, "").trim()
   return core === "Failed to fetch" || core === "Load failed"
 }
 
@@ -150,6 +169,12 @@ export function formatChatError(message: string | undefined): string {
       }
       const apiError = normalizeApiErrorField(parsed.error)
       if (apiError) {
+        if (isBrowserOfflineError(apiError)) {
+          return OFFLINE_INTERNET_HINT
+        }
+        if (isFetchAbortMessage(apiError)) {
+          return ERROR_MESSAGES["Request cancelled."]
+        }
         const base =
           ERROR_MESSAGES[apiError] ??
           "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
@@ -182,10 +207,7 @@ export function formatChatError(message: string | undefined): string {
     }
   }
 
-  if (
-    normalizedMessage === "Request cancelled." ||
-    normalizedMessage === "AbortError"
-  ) {
+  if (isFetchAbortMessage(normalizedMessage)) {
     return ERROR_MESSAGES["Request cancelled."]
   }
 

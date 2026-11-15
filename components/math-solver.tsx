@@ -69,7 +69,20 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       new DefaultChatTransport({
         api: "/api/solve",
         fetch: async (input, init) => {
-          const response = await fetch(input, init)
+          let response: Response
+          try {
+            response = await fetch(input, init)
+          } catch (err) {
+            if (
+              (err instanceof DOMException || err instanceof Error) &&
+              err.name === "AbortError"
+            ) {
+              throw new Error(
+                JSON.stringify({ error: "Request cancelled.", name: "AbortError" }),
+              )
+            }
+            throw err
+          }
           if (!response.ok) {
             const text = stripUtf8Bom((await response.text()) || "")
             if (response.status === 499) {
