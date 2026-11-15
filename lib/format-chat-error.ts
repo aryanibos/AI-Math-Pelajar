@@ -146,7 +146,10 @@ function isBrowserOfflineError(message: string): boolean {
     return true
   }
   const core = trimmed.replace(/^(TypeError|Error):\s*/i, "").trim()
-  return core === "Failed to fetch" || core === "Load failed"
+  if (core === "Failed to fetch" || core === "Load failed") return true
+  if (core === "network error" || core === "Network connection lost") return true
+  if (/^Failed to fetch \([^)]+\)$/i.test(core)) return true
+  return /\bFailed to fetch\b/.test(core)
 }
 
 export function formatChatError(message: string | undefined): string {
