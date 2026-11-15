@@ -152,7 +152,17 @@ export function formatChatError(message: string | undefined): string {
         return base
       }
       const detailOnly = firstDetail(parsed.details)
+      const retryOnly =
+        typeof parsed.retryAfterSec === "number" &&
+        Number.isFinite(parsed.retryAfterSec) &&
+        parsed.retryAfterSec > 0
+          ? formatRetryAfter(parsed.retryAfterSec)
+          : null
+      if (detailOnly && retryOnly) return `${detailOnly} ${retryOnly}`
       if (detailOnly) return detailOnly
+      if (retryOnly) {
+        return `${ERROR_MESSAGES["Too many requests. Please try again later."]} ${retryOnly}`
+      }
     } catch {
       // Not JSON — fall through.
     }
@@ -163,6 +173,11 @@ export function formatChatError(message: string | undefined): string {
     normalizedMessage === "AbortError"
   ) {
     return ERROR_MESSAGES["Request cancelled."]
+  }
+
+  const trimmedMessage = normalizedMessage.trim()
+  if (trimmedMessage === "Failed to fetch" || trimmedMessage === "Load failed") {
+    return "Gagal menghubungi server. Periksa koneksi internet dan coba lagi."
   }
 
   const plainApi = recognizeApiPlainError(normalizedMessage)
