@@ -121,9 +121,11 @@ export function formatChatError(message: string | undefined): string {
     return "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
   }
 
-  if (message.trimStart().startsWith("{")) {
+  const normalizedMessage = stripUtf8Bom(message)
+
+  if (normalizedMessage.trimStart().startsWith("{")) {
     try {
-      const parsed = JSON.parse(message) as {
+      const parsed = JSON.parse(normalizedMessage) as {
         error?: string
         name?: string
         details?: Record<string, string[] | undefined>
@@ -132,9 +134,10 @@ export function formatChatError(message: string | undefined): string {
       if (isExplicitCancellation(parsed)) {
         return ERROR_MESSAGES["Request cancelled."]
       }
-      if (typeof parsed.error === "string") {
+      const apiError = normalizeApiErrorField(parsed.error)
+      if (apiError) {
         const base =
-          ERROR_MESSAGES[parsed.error] ??
+          ERROR_MESSAGES[apiError] ??
           "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
         const detail = firstDetail(parsed.details)
         const retryHint =
@@ -155,9 +158,23 @@ export function formatChatError(message: string | undefined): string {
     }
   }
 
-  if (message === "Request cancelled." || message === "AbortError") {
+  if (
+    normalizedMessage === "Request cancelled." ||
+    normalizedMessage === "AbortError"
+  ) {
     return ERROR_MESSAGES["Request cancelled."]
   }
 
-  return ERROR_MESSAGES[message] ?? "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
+  const plainApi = recognizeApiPlainError(normalizedMessage)
+  if (plainApi) {
+    return (
+      ERROR_MESSAGES[plainApi] ??
+      "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
+    )
+  }
+
+  return (
+    ERROR_MESSAGES[normalizedMessage.trim()] ??
+    "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
+  )
 }
