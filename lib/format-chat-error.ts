@@ -116,6 +116,20 @@ function isExplicitCancellation(parsed: {
   )
 }
 
+const OFFLINE_INTERNET_HINT =
+  "Gagal menghubungi server. Periksa koneksi internet dan coba lagi."
+
+/** Browser/network failures when `fetch` throws before our transport shapes JSON errors. */
+function isBrowserOfflineError(message: string): boolean {
+  const trimmed = message.trim()
+  if (trimmed === "Network request failed") return true
+  if (/NetworkError when attempting to fetch resource/i.test(trimmed)) {
+    return true
+  }
+  const core = trimmed.replace(/^TypeError:\s*/i, "").trim()
+  return core === "Failed to fetch" || core === "Load failed"
+}
+
 export function formatChatError(message: string | undefined): string {
   if (!message) {
     return "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
@@ -175,9 +189,8 @@ export function formatChatError(message: string | undefined): string {
     return ERROR_MESSAGES["Request cancelled."]
   }
 
-  const trimmedMessage = normalizedMessage.trim()
-  if (trimmedMessage === "Failed to fetch" || trimmedMessage === "Load failed") {
-    return "Gagal menghubungi server. Periksa koneksi internet dan coba lagi."
+  if (isBrowserOfflineError(normalizedMessage)) {
+    return OFFLINE_INTERNET_HINT
   }
 
   const plainApi = recognizeApiPlainError(normalizedMessage)
