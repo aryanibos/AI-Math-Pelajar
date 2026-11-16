@@ -239,13 +239,15 @@ export function SolutionDisplay({
   const incompleteBanner =
     isTruncated
       ? "Jawaban mungkin terpotong karena terlalu panjang. Coba pecah soal menjadi bagian yang lebih kecil atau ajukan soal baru dengan fokus pada satu bagian."
-      : finishReason === "content-filter"
-        ? "Jawaban mungkin tidak lengkap karena filter konten. Coba ubah cara menulis soal atau ajukan soal baru."
-        : finishReason === "error"
-          ? "Jawaban mungkin tidak lengkap karena terjadi gangguan saat pemrosesan. Silakan coba lagi."
-          : assistantMetadata?.incomplete
-            ? "Jawaban mungkin tidak lengkap. Silakan coba lagi jika penjelasan terasa terputus."
-            : null
+      : hasEmptySolution
+        ? "Jawaban tidak tersedia. Silakan coba lagi."
+        : finishReason === "content-filter"
+          ? "Jawaban mungkin tidak lengkap karena filter konten. Coba ubah cara menulis soal atau ajukan soal baru."
+          : finishReason === "error"
+            ? "Jawaban mungkin tidak lengkap karena terjadi gangguan saat pemrosesan. Silakan coba lagi."
+            : assistantMetadata?.incomplete
+              ? "Jawaban mungkin tidak lengkap. Silakan coba lagi jika penjelasan terasa terputus."
+              : null
   const isIncomplete = incompleteBanner !== null
 
   return (

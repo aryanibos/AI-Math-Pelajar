@@ -35,11 +35,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const [error, setError] = useState<string | null>(null)
   const [captureWarning, setCaptureWarning] = useState<string | null>(null)
 
-  const clearNotReadyError = useCallback(() => {
-    setError((prev) =>
-      prev === "Kamera belum siap. Tunggu sebentar lalu coba lagi." ? null : prev,
-    )
-  }, [])
+  const NOT_READY_HINT = "Kamera belum siap. Tunggu sebentar lalu coba lagi."
 
   const stopStream = useCallback(() => {
     if (videoRef.current) {
@@ -108,7 +104,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           isStreamReadyForCapture(streamRef.current, video)
         ) {
           setIsVideoReady(true)
-          clearNotReadyError()
+          setCaptureWarning(null)
         }
       }
     } catch {
@@ -120,7 +116,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         setIsLoading(false)
       }
     }
-  }, [facingMode, stopStream, clearNotReadyError])
+  }, [facingMode, stopStream])
 
   useEffect(() => {
     // Defer camera init out of the effect sync path (react-hooks/set-state-in-effect).
@@ -148,13 +144,13 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     setCaptureWarning(null)
 
     if (!isVideoReady) {
-      setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
+      setCaptureWarning(NOT_READY_HINT)
       return
     }
 
     const video = videoRef.current
     if (video.videoWidth === 0 || video.videoHeight === 0) {
-      setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
+      setCaptureWarning(NOT_READY_HINT)
       return
     }
 
@@ -243,23 +239,29 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
               const video = e.currentTarget
               if (isStreamReadyForCapture(streamRef.current, video)) {
                 setIsVideoReady(true)
-                clearNotReadyError()
+                setCaptureWarning(null)
               }
             }}
             onLoadedData={(e) => {
               const video = e.currentTarget
               if (isStreamReadyForCapture(streamRef.current, video)) {
                 setIsVideoReady(true)
-                clearNotReadyError()
+                setCaptureWarning(null)
               }
             }}
-            className={`h-full w-full object-cover ${isLoading || error ? 'invisible' : ''}`}
+            className={`h-full w-full object-cover ${isLoading ? "invisible" : ""}`}
           />
 
           <canvas ref={canvasRef} className="hidden" />
 
           {captureWarning && !error && (
-            <div className="absolute inset-x-0 bottom-0 bg-destructive/90 px-4 py-2 text-center text-sm text-destructive-foreground">
+            <div
+              className={`absolute inset-x-0 bottom-0 px-4 py-2 text-center text-sm ${
+                captureWarning === NOT_READY_HINT
+                  ? "bg-foreground/80 text-background"
+                  : "bg-destructive/90 text-destructive-foreground"
+              }`}
+            >
               {captureWarning}
             </div>
           )}

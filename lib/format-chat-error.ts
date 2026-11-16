@@ -172,14 +172,15 @@ export function formatChatError(message: string | undefined): string {
       }
       const apiError = normalizeApiErrorField(parsed.error)
       if (apiError) {
-        if (isBrowserOfflineError(apiError)) {
+        const mappedApiError = ERROR_MESSAGES[apiError]
+        if (!mappedApiError && isBrowserOfflineError(apiError)) {
           return OFFLINE_INTERNET_HINT
         }
         if (isFetchAbortMessage(apiError)) {
           return ERROR_MESSAGES["Request cancelled."]
         }
         const base =
-          ERROR_MESSAGES[apiError] ??
+          mappedApiError ??
           "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
         const detail = firstDetail(parsed.details)
         const retryHint =

@@ -49,6 +49,17 @@ const levelColors = {
   S1: "bg-rose-500",
 }
 
+function parseRetryAfterHeader(header: string | null): number | undefined {
+  if (header === null) return undefined
+  const trimmed = header.trim()
+  if (!trimmed) return undefined
+  const asNumber = Number(trimmed)
+  if (Number.isFinite(asNumber) && asNumber >= 0) return asNumber
+  const asDate = Date.parse(trimmed)
+  if (!Number.isFinite(asDate)) return undefined
+  return Math.max(0, Math.ceil((asDate - Date.now()) / 1000))
+}
+
 export function MathSolver({ level, onBack }: MathSolverProps) {
   const [inputMode, setInputMode] = useState<"text" | "upload" | "camera" | null>(null)
   const [textInput, setTextInput] = useState("")
@@ -89,10 +100,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               throw new Error(JSON.stringify({ error: "Request cancelled." }))
             }
             const retryAfter = response.headers.get("Retry-After")
-            const retryAfterSec =
-              retryAfter !== null && Number.isFinite(Number(retryAfter))
-                ? Number(retryAfter)
-                : undefined
+            const retryAfterSec = parseRetryAfterHeader(retryAfter)
             try {
               const parsed = JSON.parse(text) as {
                 error?: string
@@ -550,7 +558,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
       <div className="mx-auto max-w-4xl px-4 py-6">
         {(uploadError ||
-          (error && !hasAssistantContent && !isLoading)) && (
+          (error && !hasAssistantContent && status !== "streaming")) && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
               {uploadError ?? formatChatError(error!.message)}
