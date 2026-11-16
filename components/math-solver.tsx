@@ -116,6 +116,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     rateLimitReason,
                   ),
                   details: parsed.details,
+                  rateLimitReason:
+                    response.status === 429 ? rateLimitReason ?? undefined : undefined,
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
                 }),
@@ -130,6 +132,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     text,
                     rateLimitReason,
                   ),
+                  rateLimitReason:
+                    response.status === 429 ? rateLimitReason ?? undefined : undefined,
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
                 }),
@@ -568,7 +572,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
           (error && !hasAssistantContent && status !== "streaming")) && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              {uploadError ?? formatChatError(error!.message)}
+              {(error && !hasAssistantContent && status !== "streaming"
+                ? formatChatError(error.message)
+                : null) ?? uploadError}
             </AlertDescription>
           </Alert>
         )}

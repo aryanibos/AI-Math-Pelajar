@@ -177,6 +177,7 @@ export function formatChatError(message: string | undefined): string {
         name?: string
         details?: Record<string, string[] | undefined>
         retryAfterSec?: number
+        rateLimitReason?: string
       }
       if (isExplicitCancellation(parsed)) {
         return ERROR_MESSAGES["Request cancelled."]
@@ -215,7 +216,14 @@ export function formatChatError(message: string | undefined): string {
       if (detailOnly && retryOnly) return `${detailOnly} ${retryOnly}`
       if (detailOnly) return detailOnly
       if (retryOnly) {
-        return `${ERROR_MESSAGES["Too many requests. Please try again later."]} ${retryOnly}`
+        const reasonKey =
+          parsed.rateLimitReason &&
+          RATE_LIMIT_REASON_API_ERRORS[parsed.rateLimitReason]
+        const retryBase =
+          ERROR_MESSAGES[
+            reasonKey ?? "Too many requests. Please try again later."
+          ]
+        return `${retryBase} ${retryOnly}`
       }
     } catch {
       // Not JSON — fall through.
