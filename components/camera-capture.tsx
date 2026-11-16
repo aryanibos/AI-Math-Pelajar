@@ -12,6 +12,18 @@ interface CameraCaptureProps {
   onClose: () => void
 }
 
+function isStreamReadyForCapture(
+  stream: MediaStream | null,
+  video: HTMLVideoElement,
+): boolean {
+  if (!stream || video.srcObject !== stream || !stream.active) return false
+  const tracks = stream.getVideoTracks()
+  if (tracks.length === 0 || !tracks.some((t) => t.readyState === "live")) {
+    return false
+  }
+  return video.videoWidth > 0 && video.videoHeight > 0
+}
+
 export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -93,9 +105,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         }
         if (
           requestId === startRequestRef.current &&
-          video.srcObject === streamRef.current &&
-          video.videoWidth > 0 &&
-          video.videoHeight > 0
+          isStreamReadyForCapture(streamRef.current, video)
         ) {
           setIsVideoReady(true)
           clearNotReadyError()
@@ -149,11 +159,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     }
 
     const stream = streamRef.current
-    if (
-      !stream ||
-      video.srcObject !== stream ||
-      stream.getVideoTracks().every((t) => t.readyState === "ended")
-    ) {
+    if (!isStreamReadyForCapture(stream, video)) {
       setIsVideoReady(false)
       setError("Kamera terputus. Coba lagi atau muat ulang halaman.")
       return
@@ -235,24 +241,14 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             muted
             onLoadedMetadata={(e) => {
               const video = e.currentTarget
-              if (
-                video.srcObject === streamRef.current &&
-                streamRef.current &&
-                video.videoWidth > 0 &&
-                video.videoHeight > 0
-              ) {
+              if (isStreamReadyForCapture(streamRef.current, video)) {
                 setIsVideoReady(true)
                 clearNotReadyError()
               }
             }}
             onLoadedData={(e) => {
               const video = e.currentTarget
-              if (
-                video.srcObject === streamRef.current &&
-                streamRef.current &&
-                video.videoWidth > 0 &&
-                video.videoHeight > 0
-              ) {
+              if (isStreamReadyForCapture(streamRef.current, video)) {
                 setIsVideoReady(true)
                 clearNotReadyError()
               }
