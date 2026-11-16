@@ -147,6 +147,18 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       setError("Kamera belum siap. Tunggu sebentar lalu coba lagi.")
       return
     }
+
+    const stream = streamRef.current
+    if (
+      !stream ||
+      video.srcObject !== stream ||
+      stream.getVideoTracks().every((t) => t.readyState === "ended")
+    ) {
+      setIsVideoReady(false)
+      setError("Kamera terputus. Coba lagi atau muat ulang halaman.")
+      return
+    }
+
     const { videoWidth: srcWidth, videoHeight: srcHeight } = video
 
     const canvas = canvasRef.current
