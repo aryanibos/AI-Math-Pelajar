@@ -106,7 +106,10 @@ export async function POST(req: Request) {
       { error },
       {
         status: 429,
-        headers: { "Retry-After": String(rate.retryAfterSec) },
+        headers: {
+          "Retry-After": String(rate.retryAfterSec),
+          "X-Rate-Limit-Reason": rate.reason,
+        },
       },
     )
   }

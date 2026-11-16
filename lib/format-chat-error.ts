@@ -44,10 +44,15 @@ export function recognizeApiPlainError(text: string): string | undefined {
   return trimmed
 }
 
+const RATE_LIMIT_REASON_API_ERRORS: Record<string, string> = {
+  bucket_capacity: "Too many active clients. Please try again later.",
+  rate_limited: "Too many requests. Please try again later.",
+}
+
 /** Shared HTTP → `error` string for `/api/solve` transport (JSON and non-JSON bodies). */
 export function solveHttpErrorMessage(status: number): string {
   if (status >= 500) return "AI service unavailable. Please try again later."
-  if (status === 429) return "Too many requests. Please try again later."
+  if (status === 429) return RATE_LIMIT_REASON_API_ERRORS.rate_limited
   if (status === 413) return "Request body too large"
   if (status === 408) return "Request body read timed out."
   if (status === 400) return "Invalid request"
@@ -65,10 +70,16 @@ export function resolveSolveTransportError(
   status: number,
   jsonError: unknown,
   plainBody = "",
+  rateLimitReason?: string | null,
 ): string {
+  const headerReason =
+    status === 429 && rateLimitReason
+      ? RATE_LIMIT_REASON_API_ERRORS[rateLimitReason]
+      : undefined
   return (
     normalizeApiErrorField(jsonError) ??
     recognizeApiPlainError(plainBody) ??
+    headerReason ??
     solveHttpErrorMessage(status)
   )
 }

@@ -101,6 +101,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             }
             const retryAfter = response.headers.get("Retry-After")
             const retryAfterSec = parseRetryAfterHeader(retryAfter)
+            const rateLimitReason = response.headers.get("X-Rate-Limit-Reason")
             try {
               const parsed = JSON.parse(text) as {
                 error?: string
@@ -112,6 +113,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     response.status,
                     parsed.error,
                     text,
+                    rateLimitReason,
                   ),
                   details: parsed.details,
                   retryAfterSec:
@@ -122,7 +124,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
               if (err instanceof Error && err.message.startsWith("{")) throw err
               throw new Error(
                 JSON.stringify({
-                  error: resolveSolveTransportError(response.status, undefined, text),
+                  error: resolveSolveTransportError(
+                    response.status,
+                    undefined,
+                    text,
+                    rateLimitReason,
+                  ),
                   retryAfterSec:
                     response.status === 429 ? retryAfterSec : undefined,
                 }),
