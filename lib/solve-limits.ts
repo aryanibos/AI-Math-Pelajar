@@ -15,6 +15,8 @@ export const RATE_LIMIT_REQUESTS = 15
 /** Stricter cap when client IP cannot be verified (shared bucket). */
 export const RATE_LIMIT_UNVERIFIED_REQUESTS = 5
 export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+/** Cap bytes read from non-OK `/api/solve` error bodies in the client transport. */
+export const MAX_ERROR_RESPONSE_TEXT_CHARS = 16_384
 
 export const ALLOWED_IMAGE_MIME_REGEX = /^image\/(jpeg|jpg|png|webp|gif)$/i
 export const ALLOWED_IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/gif"
@@ -31,6 +33,30 @@ export function isAllowedImageMime(mime: string): boolean {
 /** Strip a leading UTF-8 BOM so `JSON.parse` accepts otherwise valid JSON bodies. */
 export function stripUtf8Bom(raw: string): string {
   return raw.length > 0 && raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw
+}
+
+/** Read at most `maxChars` from a failed fetch response and cancel any unread body. */
+export async function readBoundedResponseText(
+  response: Response,
+  maxChars = MAX_ERROR_RESPONSE_TEXT_CHARS,
+): Promise<string> {
+  if (!response.body) {
+    const text = await response.text()
+    return text.length > maxChars ? text.slice(0, maxChars) : text
+  }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let acc = ""
+  try {
+    while (acc.length <= maxChars) {
+      const { done, value } = await reader.read()
+      if (done) break
+      acc += decoder.decode(value, { stream: true })
+    }
+  } finally {
+    await reader.cancel().catch(() => {})
+  }
+  return acc.length > maxChars ? acc.slice(0, maxChars) : acc
 }
 
 export type JsonPreParseRejectReason =

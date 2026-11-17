@@ -33,7 +33,7 @@ import {
   stripEmbeddedScaffolding,
   stripInvisibleChars,
 } from "@/lib/education-level"
-import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl, stripUtf8Bom } from "@/lib/solve-limits"
+import { MAX_BODY_BYTES, MAX_IMAGE_BYTES, MAX_TEXT_CHARS, ALLOWED_IMAGE_ACCEPT, isAllowedImageMime, estimateDataUrlBytes, estimateSolveRequestBodyBytes, normalizeImageMime, sniffImageMimeFromBytes, sniffImageMimeFromDataUrl, isValidImageDataUrl, readBoundedResponseText, stripUtf8Bom } from "@/lib/solve-limits"
 import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
 import { formatChatError, resolveSolveTransportError } from "@/lib/format-chat-error"
 
@@ -95,7 +95,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             throw err
           }
           if (!response.ok) {
-            const text = stripUtf8Bom((await response.text()) || "")
+            const text = stripUtf8Bom((await readBoundedResponseText(response)) || "")
             if (response.status === 499) {
               throw new Error(JSON.stringify({ error: "Request cancelled." }))
             }
@@ -696,6 +696,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       size="sm"
                       onClick={() => {
                         clearImageAttachment()
+                        setTextInput("")
                         setUploadError(null)
                         clearError()
                         setInputMode(null)
