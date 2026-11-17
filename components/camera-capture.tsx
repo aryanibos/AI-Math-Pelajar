@@ -157,7 +157,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     const stream = streamRef.current
     if (!isStreamReadyForCapture(stream, video)) {
       setIsVideoReady(false)
-      setError("Kamera terputus. Coba lagi atau muat ulang halaman.")
+      setCaptureWarning("Kamera terputus. Coba lagi.")
       return
     }
 

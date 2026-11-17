@@ -207,10 +207,7 @@ export async function POST(req: Request) {
   try {
     body = JSON.parse(jsonText)
   } catch (err) {
-    if (
-      err instanceof SyntaxError &&
-      /Unexpected end of JSON input/i.test(err.message)
-    ) {
+    if (err instanceof SyntaxError) {
       refundQuotaOnce()
     }
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
@@ -309,7 +306,10 @@ export async function POST(req: Request) {
             .join("\n")
             .trim() ?? ""
 
-        if (!assistantText) {
+        const billableSuccess =
+          finishReason === "stop" && assistantText.length > 0
+
+        if (!billableSuccess) {
           refundQuotaOnce()
         }
       },
