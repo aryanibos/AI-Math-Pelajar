@@ -195,6 +195,22 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     stop()
   }, [status, stop, clearError, hasAssistantContent])
 
+  const clearImageAttachment = useCallback(() => {
+    fileReaderRef.current?.abort()
+    fileReaderRef.current = null
+    imagePreviewValidatedRef.current = false
+    setImagePreview(null)
+    setIsProcessingImageUpload(false)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }, [])
+
+  const enterTextInputMode = useCallback(() => {
+    clearImageAttachment()
+    setUploadError(null)
+    clearError()
+    setInputMode("text")
+  }, [clearImageAttachment, clearError])
+
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -643,7 +659,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
                     <Card 
                       className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
-                      onClick={() => setInputMode("text")}
+                      onClick={() => enterTextInputMode()}
                     >
                       <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent">
@@ -677,7 +693,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setInputMode(null)}
+                      onClick={() => {
+                        clearImageAttachment()
+                        setUploadError(null)
+                        setInputMode(null)
+                      }}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -692,7 +712,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   
                   <Button
                     onClick={handleSubmit}
-                    disabled={!stripInvisibleChars(textInput).trim() || isLoading}
+                    disabled={
+                      !stripInvisibleChars(textInput).trim() ||
+                      isLoading ||
+                      isProcessingImageUpload
+                    }
                     className="w-full gap-2"
                     size="lg"
                   >
@@ -727,15 +751,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        fileReaderRef.current?.abort()
-                        fileReaderRef.current = null
-                        imagePreviewValidatedRef.current = false
-                        setImagePreview(null)
-                        setIsProcessingImageUpload(false)
+                        clearImageAttachment()
                         setInputMode(null)
                         setUploadError(null)
                         clearError()
-                        if (fileInputRef.current) fileInputRef.current.value = ""
                       }}
                     >
                       <X className="h-4 w-4" />
