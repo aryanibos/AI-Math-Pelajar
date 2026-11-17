@@ -696,6 +696,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       onClick={() => {
                         clearImageAttachment()
                         setUploadError(null)
+                        clearError()
                         setInputMode(null)
                       }}
                     >
