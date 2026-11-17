@@ -206,6 +206,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const enterTextInputMode = useCallback(() => {
     clearImageAttachment()
+    setTextInput("")
     setUploadError(null)
     clearError()
     setInputMode("text")
