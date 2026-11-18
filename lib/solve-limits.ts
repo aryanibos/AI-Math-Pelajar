@@ -41,8 +41,8 @@ export async function readBoundedResponseText(
   maxChars = MAX_ERROR_RESPONSE_TEXT_CHARS,
 ): Promise<string> {
   if (!response.body) {
-    const text = await response.text()
-    return text.length > maxChars ? text.slice(0, maxChars) : text
+    // No ReadableStream — avoid unbounded `response.text()` on huge error payloads.
+    return ""
   }
   const reader = response.body.getReader()
   const decoder = new TextDecoder()

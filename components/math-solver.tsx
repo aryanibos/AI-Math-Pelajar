@@ -755,6 +755,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       size="sm"
                       onClick={() => {
                         clearImageAttachment()
+                        setTextInput("")
                         setInputMode(null)
                         setUploadError(null)
                         clearError()

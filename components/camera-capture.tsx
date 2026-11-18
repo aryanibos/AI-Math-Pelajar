@@ -21,7 +21,11 @@ function isStreamReadyForCapture(
   if (tracks.length === 0 || !tracks.some((t) => t.readyState === "live")) {
     return false
   }
-  return video.videoWidth > 0 && video.videoHeight > 0
+  return (
+    video.videoWidth > 0 &&
+    video.videoHeight > 0 &&
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+  )
 }
 
 export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
