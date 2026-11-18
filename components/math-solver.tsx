@@ -632,7 +632,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   <div className="grid gap-4 md:grid-cols-3">
                     <Card 
                       className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        if (inputMode === null) setTextInput("")
+                        setUploadError(null)
+                        clearError()
+                        fileInputRef.current?.click()
+                      }}
                     >
                       <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
@@ -653,6 +658,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                       className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
                       onClick={() => {
                         if (inputMode === null) setTextInput("")
+                        setUploadError(null)
+                        clearError()
                         setShowCamera(true)
                       }}
                     >
