@@ -863,7 +863,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         {showCamera && (
           <CameraCapture
             onCapture={handleCameraCapture}
-            onClose={() => setShowCamera(false)}
+            onClose={(dismissedError) => {
+              setShowCamera(false)
+              if (dismissedError) {
+                setUploadError(dismissedError)
+                clearError()
+              }
+            }}
           />
         )}
       </div>

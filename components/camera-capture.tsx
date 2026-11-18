@@ -9,7 +9,8 @@ import { compressCanvasToJpegDataUrl } from "@/lib/compress-image-data-url"
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void
-  onClose: () => void
+  /** When the modal is dismissed, pass a fatal in-modal error so the parent can surface it. */
+  onClose: (dismissedError?: string | null) => void
 }
 
 function isStreamReadyForCapture(
@@ -196,7 +197,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     startRequestRef.current += 1
     stopStream()
     setCaptureWarning(null)
-    onClose()
+    setError((dismissedError) => {
+      onClose(dismissedError ?? undefined)
+      return null
+    })
   }, [stopStream, onClose])
 
   return (
