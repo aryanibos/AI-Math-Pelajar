@@ -389,7 +389,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setImagePreview(imageData)
     setInputMode("camera")
     setShowCamera(false)
-  }, [clearError])
+  }, [clearError, inputMode])
 
   const handleSubmit = useCallback(async () => {
     if (submittingRef.current || isLoading) return
@@ -633,7 +633,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     <Card 
                       className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
                       onClick={() => {
-                        if (inputMode === null) setTextInput("")
+                        if (inputMode === null) {
+                          setTextInput("")
+                          clearImageAttachment()
+                        }
                         setUploadError(null)
                         clearError()
                         fileInputRef.current?.click()
@@ -657,7 +660,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     <Card 
                       className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
                       onClick={() => {
-                        if (inputMode === null) setTextInput("")
+                        if (inputMode === null) {
+                          setTextInput("")
+                          clearImageAttachment()
+                        }
                         setUploadError(null)
                         clearError()
                         setShowCamera(true)
