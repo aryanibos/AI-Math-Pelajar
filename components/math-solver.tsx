@@ -216,6 +216,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (inputMode === null) {
+      setTextInput("")
+    }
+
     setUploadError(null)
     clearError()
 
@@ -352,7 +356,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setInputMode(null)
     }
     reader.readAsDataURL(file)
-  }, [clearError])
+  }, [clearError, inputMode])
 
   const handleCameraCapture = useCallback((imageData: string) => {
     setUploadError(null)
@@ -585,11 +589,17 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-6">
-        {(uploadError ||
-          (error && !hasAssistantContent && status !== "streaming")) && (
+        {((!hasSolution && uploadError) ||
+          (error &&
+            !hasAssistantContent &&
+            status !== "streaming" &&
+            !(isLoading && !hasAssistantMessage))) && (
           <Alert variant="destructive" className="mb-4">
             <AlertDescription>
-              {(error && !hasAssistantContent && status !== "streaming"
+              {(error &&
+              !hasAssistantContent &&
+              status !== "streaming" &&
+              !(isLoading && !hasAssistantMessage)
                 ? formatChatError(error.message)
                 : null) ?? uploadError}
             </AlertDescription>
@@ -641,7 +651,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
                     <Card 
                       className="cursor-pointer transition-all hover:border-primary hover:shadow-lg"
-                      onClick={() => setShowCamera(true)}
+                      onClick={() => {
+                        if (inputMode === null) setTextInput("")
+                        setShowCamera(true)
+                      }}
                     >
                       <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/50">
