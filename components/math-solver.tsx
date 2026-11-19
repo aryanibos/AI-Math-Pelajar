@@ -564,6 +564,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             size="sm"
             onClick={() => {
               abortStream()
+              submittingRef.current = false
+              setStreamAborted(false)
+              fileReaderRef.current?.abort()
+              fileReaderRef.current = null
+              setIsProcessingImageUpload(false)
+              setShowCamera(false)
               onBack()
             }}
             className="gap-2"
