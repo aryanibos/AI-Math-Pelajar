@@ -42,6 +42,12 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
 
   const NOT_READY_HINT = "Kamera belum siap. Tunggu sebentar lalu coba lagi."
 
+  const maybeMarkVideoReady = useCallback((video: HTMLVideoElement) => {
+    if (!isStreamReadyForCapture(streamRef.current, video)) return
+    setIsVideoReady(true)
+    setCaptureWarning(null)
+  }, [])
+
   const stopStream = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.srcObject = null
@@ -104,12 +110,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           setError("Gagal memutar video kamera. Coba muat ulang halaman.")
           return
         }
-        if (
-          requestId === startRequestRef.current &&
-          isStreamReadyForCapture(streamRef.current, video)
-        ) {
-          setIsVideoReady(true)
-          setCaptureWarning(null)
+        if (requestId === startRequestRef.current) {
+          maybeMarkVideoReady(video)
         }
       }
     } catch {
@@ -121,7 +123,7 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         setIsLoading(false)
       }
     }
-  }, [facingMode, stopStream])
+  }, [facingMode, stopStream, maybeMarkVideoReady])
 
   useEffect(() => {
     // Defer camera init out of the effect sync path (react-hooks/set-state-in-effect).
@@ -241,20 +243,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             autoPlay
             playsInline
             muted
-            onLoadedMetadata={(e) => {
-              const video = e.currentTarget
-              if (isStreamReadyForCapture(streamRef.current, video)) {
-                setIsVideoReady(true)
-                setCaptureWarning(null)
-              }
-            }}
-            onLoadedData={(e) => {
-              const video = e.currentTarget
-              if (isStreamReadyForCapture(streamRef.current, video)) {
-                setIsVideoReady(true)
-                setCaptureWarning(null)
-              }
-            }}
+            onLoadedMetadata={(e) => maybeMarkVideoReady(e.currentTarget)}
+            onLoadedData={(e) => maybeMarkVideoReady(e.currentTarget)}
+            onResize={(e) => maybeMarkVideoReady(e.currentTarget)}
+            onPlaying={(e) => maybeMarkVideoReady(e.currentTarget)}
             className={`h-full w-full object-cover ${isLoading ? "invisible" : ""}`}
           />
 
