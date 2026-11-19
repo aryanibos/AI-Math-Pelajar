@@ -359,6 +359,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [clearError, inputMode])
 
   const handleCameraCapture = useCallback((imageData: string) => {
+    if (inputMode === null) {
+      setTextInput("")
+    }
+
     setUploadError(null)
     clearError()
 
