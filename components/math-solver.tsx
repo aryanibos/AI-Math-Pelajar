@@ -504,8 +504,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages, streamAborted])
 
   const handleReset = useCallback(() => {
-    setStreamAborted(false)
     abortStream()
+    submittingRef.current = false
     fileReaderRef.current?.abort()
     fileReaderRef.current = null
     setIsProcessingImageUpload(false)
@@ -516,6 +516,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setUploadError(null)
     clearError()
     setMessages([])
+    setStreamAborted(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }, [setMessages, clearError, abortStream])
 
