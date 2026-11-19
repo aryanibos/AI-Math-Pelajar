@@ -218,6 +218,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
     if (inputMode === null) {
       setTextInput("")
+      clearImageAttachment()
     }
 
     setUploadError(null)
@@ -356,11 +357,12 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setInputMode(null)
     }
     reader.readAsDataURL(file)
-  }, [clearError, inputMode])
+  }, [clearImageAttachment, clearError, inputMode])
 
   const handleCameraCapture = useCallback((imageData: string) => {
     if (inputMode === null) {
       setTextInput("")
+      clearImageAttachment()
     }
 
     setUploadError(null)
@@ -393,7 +395,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setImagePreview(imageData)
     setInputMode("camera")
     setShowCamera(false)
-  }, [clearError, inputMode])
+  }, [clearError, clearImageAttachment, inputMode])
 
   const handleSubmit = useCallback(async () => {
     if (submittingRef.current || isLoading) return
