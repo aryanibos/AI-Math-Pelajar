@@ -74,6 +74,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const submittingRef = useRef(false)
   /** Set after capture/upload passes full image validation — skip re-decode on submit. */
   const imagePreviewValidatedRef = useRef(false)
+  /** Avoid duplicate `useChat.stop()` when Kembali already ran `abortStream()`. */
+  const chatStopIssuedRef = useRef(false)
+  const chatStatusRef = useRef<
+    "streaming" | "submitted" | "ready" | "error"
+  >("ready")
 
   const transport = useMemo(
     () =>
@@ -161,12 +166,22 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   })
 
   useEffect(() => {
+    chatStatusRef.current = status
+  }, [status])
+
+  useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
       fileReaderRef.current?.abort()
       fileReaderRef.current = null
-      stop()
+      const s = chatStatusRef.current
+      if (
+        !chatStopIssuedRef.current &&
+        (s === "streaming" || s === "submitted")
+      ) {
+        stop()
+      }
     }
   }, [stop])
 
@@ -191,6 +206,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       clearError()
       setUploadError("Permintaan dibatalkan.")
     }
+    chatStopIssuedRef.current = true
     stop()
   }, [status, stop, clearError, hasAssistantContent])
 
@@ -506,6 +522,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         // Flush empty state before sendMessage so prepareSendMessagesRequest sees fresh history.
         flushSync(() => setMessages([]))
       }
+      chatStopIssuedRef.current = false
       await sendMessage({ parts })
     } finally {
       submittingRef.current = false
