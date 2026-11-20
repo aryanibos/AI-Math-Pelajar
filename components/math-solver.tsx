@@ -507,20 +507,17 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const handleReset = useCallback(() => {
     abortStream()
+    stop()
     submittingRef.current = false
-    fileReaderRef.current?.abort()
-    fileReaderRef.current = null
-    setIsProcessingImageUpload(false)
-    imagePreviewValidatedRef.current = false
+    clearImageAttachment()
+    setShowCamera(false)
     setTextInput("")
-    setImagePreview(null)
     setInputMode(null)
     setUploadError(null)
     clearError()
     setMessages([])
     setStreamAborted(false)
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }, [setMessages, clearError, abortStream])
+  }, [setMessages, clearError, abortStream, stop, clearImageAttachment])
 
   // Show solution view once the assistant message exists (incl. loading spinner before first token).
   // Hide immediately on abort before content to avoid flicker back to input.
