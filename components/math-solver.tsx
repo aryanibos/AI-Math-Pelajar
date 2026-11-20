@@ -183,14 +183,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
   const abortStream = useCallback(() => {
-    if (status === "streaming" || status === "submitted") {
-      setStreamAborted(true)
-      if (hasAssistantContent) {
-        // Keep stream error for inline partial-output banner in SolutionDisplay.
-      } else {
-        clearError()
-        setUploadError("Permintaan dibatalkan.")
-      }
+    if (status !== "streaming" && status !== "submitted") return
+    setStreamAborted(true)
+    if (hasAssistantContent) {
+      // Keep stream error for inline partial-output banner in SolutionDisplay.
+    } else {
+      clearError()
+      setUploadError("Permintaan dibatalkan.")
     }
     stop()
   }, [status, stop, clearError, hasAssistantContent])
