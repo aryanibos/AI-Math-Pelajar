@@ -204,6 +204,14 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }, [])
 
+  const releaseInFlightWork = useCallback(() => {
+    submittingRef.current = false
+    setStreamAborted(false)
+    clearImageAttachment()
+    setShowCamera(false)
+    stop()
+  }, [clearImageAttachment, stop])
+
   const enterTextInputMode = useCallback(() => {
     clearImageAttachment()
     setTextInput("")
@@ -507,17 +515,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const handleReset = useCallback(() => {
     abortStream()
-    stop()
-    submittingRef.current = false
-    clearImageAttachment()
-    setShowCamera(false)
+    releaseInFlightWork()
     setTextInput("")
     setInputMode(null)
     setUploadError(null)
     clearError()
     setMessages([])
-    setStreamAborted(false)
-  }, [setMessages, clearError, abortStream, stop, clearImageAttachment])
+  }, [setMessages, clearError, abortStream, releaseInFlightWork])
 
   // Show solution view once the assistant message exists (incl. loading spinner before first token).
   // Hide immediately on abort before content to avoid flicker back to input.
@@ -563,12 +567,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             size="sm"
             onClick={() => {
               abortStream()
-              submittingRef.current = false
-              setStreamAborted(false)
-              fileReaderRef.current?.abort()
-              fileReaderRef.current = null
-              setIsProcessingImageUpload(false)
-              setShowCamera(false)
+              releaseInFlightWork()
               onBack()
             }}
             className="gap-2"
