@@ -208,8 +208,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setStreamAborted(false)
     clearImageAttachment()
     setShowCamera(false)
-    stop()
-  }, [clearImageAttachment, stop])
+    // Active streams are stopped by abortStream() (always invoked before this).
+  }, [clearImageAttachment])
 
   const enterTextInputMode = useCallback(() => {
     clearImageAttachment()
