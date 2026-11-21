@@ -79,13 +79,33 @@ const SOLUTION_MARKDOWN_COMPONENTS: Components = {
 }
 
 class MarkdownErrorBoundary extends Component<
-  { children: ReactNode; fallbackText: string },
+  {
+    children: ReactNode
+    fallbackText: string
+    /** While streaming, retry markdown when partial LaTeX grows into valid math. */
+    recoverOnFallbackChange?: boolean
+  },
   { hasError: boolean }
 > {
   state = { hasError: false }
 
   static getDerivedStateFromError() {
     return { hasError: true }
+  }
+
+  componentDidUpdate(
+    prevProps: Readonly<{
+      fallbackText: string
+      recoverOnFallbackChange?: boolean
+    }>,
+  ) {
+    if (
+      this.state.hasError &&
+      this.props.recoverOnFallbackChange &&
+      prevProps.fallbackText !== this.props.fallbackText
+    ) {
+      this.setState({ hasError: false })
+    }
   }
 
   render() {
@@ -347,6 +367,7 @@ export function SolutionDisplay({
               <MarkdownErrorBoundary
                 key={`${assistantMessage?.id ?? "solution"}-${isLoading ? "stream" : "done"}`}
                 fallbackText={solutionText}
+                recoverOnFallbackChange={isLoading}
               >
                 <ReactMarkdown
                   remarkPlugins={[remarkMath]}
