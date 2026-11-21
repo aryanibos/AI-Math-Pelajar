@@ -198,10 +198,11 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const handleClose = useCallback(() => {
     startRequestRef.current += 1
     stopStream()
+    const dismissed = error ?? captureWarning ?? undefined
     setCaptureWarning(null)
-    onClose(error ?? undefined)
+    onClose(dismissed)
     setError(null)
-  }, [stopStream, onClose, error])
+  }, [stopStream, onClose, error, captureWarning])
 
   return (
     <motion.div
