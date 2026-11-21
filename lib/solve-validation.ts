@@ -6,6 +6,7 @@ import {
   extractRawUserDisplayText,
   IMAGE_SOLVE_PROMPT,
   rebuildSanitizedUserText,
+  stripInvisibleChars,
   SOAL_SEPARATOR,
 } from "./education-level"
 import {
@@ -41,7 +42,9 @@ const textPartSchema = z.object({
   type: z.literal("text"),
   text: z
     .string()
-    .transform((s) => normalizeLineEndings(s).trim())
+    .transform((s) =>
+      normalizeLineEndings(stripInvisibleChars(s)).trim(),
+    )
     .pipe(
       z
         .string()
@@ -96,7 +99,9 @@ function refineUserTextSemantics(
     return
   }
 
-  const normalizedText = normalizeLineEndings(textPart.text).trim()
+  const normalizedText = normalizeLineEndings(
+    stripInvisibleChars(textPart.text),
+  ).trim()
   if (!normalizedText) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
