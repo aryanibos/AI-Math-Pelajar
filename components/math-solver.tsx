@@ -68,6 +68,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isProcessingImageUpload, setIsProcessingImageUpload] = useState(false)
   const [streamAborted, setStreamAborted] = useState(false)
+  /** Cancel before any assistant text — ignore late stream chunks for solution view. */
+  const [cancelledBeforeContent, setCancelledBeforeContent] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileReaderRef = useRef<FileReader | null>(null)
   const mountedRef = useRef(true)
@@ -186,6 +188,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [stop])
 
   const isLoading = status === "streaming" || status === "submitted"
+  const isLoadingForUi = isLoading && !streamAborted
 
   const hasAssistantContent = messages.some(
     (m) =>
@@ -201,8 +204,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (status !== "streaming" && status !== "submitted") return
     setStreamAborted(true)
     if (hasAssistantContent) {
+      setCancelledBeforeContent(false)
       // Keep stream error for inline partial-output banner in SolutionDisplay.
     } else {
+      setCancelledBeforeContent(true)
       clearError()
       setUploadError("Permintaan dibatalkan.")
     }
@@ -222,6 +227,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const releaseInFlightWork = useCallback(() => {
     submittingRef.current = false
     setStreamAborted(false)
+    setCancelledBeforeContent(false)
     clearImageAttachment()
     setShowCamera(false)
     // Active streams are stopped by abortStream() (always invoked before this).
@@ -421,7 +427,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [clearError, clearImageAttachment, inputMode])
 
   const handleSubmit = useCallback(async () => {
-    if (submittingRef.current || isLoading) return
+    if (submittingRef.current || isLoadingForUi) return
     submittingRef.current = true
 
     setUploadError(null)
@@ -517,6 +523,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         streamAborted ||
         messages.some((m) => m.role === "assistant")
       setStreamAborted(false)
+      setCancelledBeforeContent(false)
       // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
       if (shouldClearHistory) {
         // Flush empty state before sendMessage so prepareSendMessagesRequest sees fresh history.
@@ -527,7 +534,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     } finally {
       submittingRef.current = false
     }
-  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages, streamAborted])
+  }, [isLoadingForUi, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages, streamAborted])
 
   const handleReset = useCallback(() => {
     abortStream()
@@ -542,11 +549,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   // Show solution view once the assistant message exists (incl. loading spinner before first token).
   // Hide immediately on abort before content to avoid flicker back to input.
   const hasSolution =
-    hasAssistantContent ||
-    (isLoading && hasAssistantMessage && !streamAborted) ||
-    (hasAssistantMessage &&
-      status === "ready" &&
-      (!streamAborted || hasAssistantContent))
+    (hasAssistantContent && !(streamAborted && cancelledBeforeContent)) ||
+    (isLoadingForUi && hasAssistantMessage) ||
+    (status === "ready" && hasAssistantContent && !streamAborted)
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
@@ -572,6 +577,18 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
     }
   }, [status, streamAborted, hasAssistantContent, hasAssistantMessage, isLoading, messages, setMessages])
+
+  useEffect(() => {
+    if (!streamAborted || !cancelledBeforeContent || !hasAssistantMessage) return
+    // Late tokens after stop() — stay on input, discard orphan assistant shell.
+    setMessages([])
+  }, [
+    streamAborted,
+    cancelledBeforeContent,
+    hasAssistantMessage,
+    messages,
+    setMessages,
+  ])
 
   return (
     <div className="min-h-screen bg-background">
@@ -768,13 +785,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     onClick={handleSubmit}
                     disabled={
                       !stripInvisibleChars(textInput).trim() ||
-                      isLoading ||
+                      isLoadingForUi ||
                       isProcessingImageUpload
                     }
                     className="w-full gap-2"
                     size="lg"
                   >
-                    {isLoading ? (
+                    {isLoadingForUi ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
                         Sedang mengerjakan...
@@ -840,11 +857,15 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   
                   <Button
                     onClick={handleSubmit}
-                    disabled={isLoading || isProcessingImageUpload || !imagePreview}
+                    disabled={
+                      isLoadingForUi ||
+                      isProcessingImageUpload ||
+                      !imagePreview
+                    }
                     className="w-full gap-2"
                     size="lg"
                   >
-                    {isLoading ? (
+                    {isLoadingForUi ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
                         Sedang mengerjakan...
