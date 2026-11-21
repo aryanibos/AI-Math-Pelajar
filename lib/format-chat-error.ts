@@ -145,6 +145,7 @@ const OFFLINE_INTERNET_HINT =
 /** Browser/network failures when `fetch` throws before our transport shapes JSON errors. */
 function isBrowserOfflineError(message: string): boolean {
   const trimmed = message.trim()
+  if (recognizeApiPlainError(trimmed)) return false
   if (trimmed === "Network request failed") return true
   if (/NetworkError when attempting to fetch resource/i.test(trimmed)) {
     return true
@@ -157,10 +158,10 @@ function isBrowserOfflineError(message: string): boolean {
     return true
   }
   const core = trimmed.replace(/^(TypeError|Error):\s*/i, "").trim()
+  if (recognizeApiPlainError(core)) return false
   if (core === "Failed to fetch" || core === "Load failed") return true
   if (core === "network error" || core === "Network connection lost") return true
-  if (/^Failed to fetch \([^)]+\)$/i.test(core)) return true
-  return /\bFailed to fetch\b/.test(core)
+  return /^Failed to fetch \([^)]+\)$/i.test(core)
 }
 
 export function formatChatError(message: string | undefined): string {
@@ -234,16 +235,16 @@ export function formatChatError(message: string | undefined): string {
     return ERROR_MESSAGES["Request cancelled."]
   }
 
-  if (isBrowserOfflineError(normalizedMessage)) {
-    return OFFLINE_INTERNET_HINT
-  }
-
   const plainApi = recognizeApiPlainError(normalizedMessage)
   if (plainApi) {
     return (
       ERROR_MESSAGES[plainApi] ??
       "Terjadi kesalahan saat memproses soal. Silakan coba lagi."
     )
+  }
+
+  if (isBrowserOfflineError(normalizedMessage)) {
+    return OFFLINE_INTERNET_HINT
   }
 
   return (
