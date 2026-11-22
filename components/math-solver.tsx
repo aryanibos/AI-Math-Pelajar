@@ -78,6 +78,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const imagePreviewValidatedRef = useRef(false)
   /** Avoid duplicate `useChat.stop()` when Kembali already ran `abortStream()`. */
   const chatStopIssuedRef = useRef(false)
+  /** Strip orphan assistant roles until the prior stream settles after `stop()`. */
+  const discardAssistantUntilIdleRef = useRef(false)
   const chatStatusRef = useRef<
     "streaming" | "submitted" | "ready" | "error"
   >("ready")
@@ -211,6 +213,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       clearError()
       setUploadError("Permintaan dibatalkan.")
     }
+    discardAssistantUntilIdleRef.current = true
     chatStopIssuedRef.current = true
     stop()
   }, [status, stop, clearError, hasAssistantContent])
@@ -226,11 +229,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const releaseInFlightWork = useCallback(() => {
     submittingRef.current = false
-    setStreamAborted(false)
-    setCancelledBeforeContent(false)
     clearImageAttachment()
     setShowCamera(false)
     // Active streams are stopped by abortStream() (always invoked before this).
+    // Stream-abort flags clear when chat status becomes ready/error.
   }, [clearImageAttachment])
 
   const enterTextInputMode = useCallback(() => {
@@ -522,14 +524,17 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         status === "error" ||
         streamAborted ||
         messages.some((m) => m.role === "assistant")
-      setStreamAborted(false)
       setCancelledBeforeContent(false)
+      if (status === "ready" || status === "error") {
+        setStreamAborted(false)
+      }
       // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
       if (shouldClearHistory) {
         // Flush empty state before sendMessage so prepareSendMessagesRequest sees fresh history.
         flushSync(() => setMessages([]))
       }
       chatStopIssuedRef.current = false
+      discardAssistantUntilIdleRef.current = false
       await sendMessage({ parts })
     } finally {
       submittingRef.current = false
@@ -552,6 +557,21 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     (hasAssistantContent && !(streamAborted && cancelledBeforeContent)) ||
     (isLoadingForUi && hasAssistantMessage) ||
     (status === "ready" && hasAssistantContent && !streamAborted)
+
+  useEffect(() => {
+    if (status !== "ready" && status !== "error") return
+    if (!discardAssistantUntilIdleRef.current && !streamAborted) return
+    const id = window.setTimeout(() => {
+      if (discardAssistantUntilIdleRef.current) {
+        discardAssistantUntilIdleRef.current = false
+      }
+      setStreamAborted((aborted) => {
+        if (aborted) setCancelledBeforeContent(false)
+        return false
+      })
+    }, 0)
+    return () => clearTimeout(id)
+  }, [status, streamAborted])
 
   useEffect(() => {
     if (isLoading || hasAssistantContent) return
@@ -579,9 +599,16 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [status, streamAborted, hasAssistantContent, hasAssistantMessage, isLoading, messages, setMessages])
 
   useEffect(() => {
-    if (!streamAborted || !cancelledBeforeContent || !hasAssistantMessage) return
-    // Late tokens after stop() — stay on input, discard orphan assistant shell.
-    setMessages([])
+    const shouldDiscard =
+      discardAssistantUntilIdleRef.current ||
+      (streamAborted && cancelledBeforeContent)
+    if (!shouldDiscard || !hasAssistantMessage) return
+    // Late tokens after stop() / Soal Baru / Kembali teardown — drop assistant shell.
+    if (streamAborted && cancelledBeforeContent) {
+      setMessages([])
+    } else {
+      setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
+    }
   }, [
     streamAborted,
     cancelledBeforeContent,
