@@ -14,7 +14,6 @@ import {
   DATA_URL_IMAGE_RE,
   estimateDataUrlBytes,
   hasValidBase64Sample,
-  isValidImageDataUrl,
   MAX_IMAGE_BYTES,
   MAX_MESSAGES,
   MAX_TEXT_CHARS,
@@ -27,12 +26,12 @@ export { isValidImageDataUrl } from "./solve-limits"
 const dataUrlImageSchema = z
   .string()
   .regex(DATA_URL_IMAGE_RE, "Invalid image data URL")
-  .refine((url) => isValidImageDataUrl(url), {
-    message: "Invalid image data URL",
-  })
   .refine((url) => estimateDataUrlBytes(url) <= MAX_IMAGE_BYTES, {
     message: `Image must be at most ${MAX_IMAGE_BYTES / (1024 * 1024)}MB`,
   })
+  // Full base64 decode lives in client submit (`isValidImageDataUrl`). Server
+  // `superRefine` already checks regex, size, base64 samples, and MIME sniff
+  // before this pipe — skip redundant multi-MB decode after rate limit.
 
 function normalizeLineEndings(text: string): string {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
