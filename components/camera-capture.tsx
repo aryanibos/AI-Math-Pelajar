@@ -198,7 +198,11 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const handleClose = useCallback(() => {
     startRequestRef.current += 1
     stopStream()
-    const dismissed = error ?? captureWarning ?? undefined
+    const warningToSurface =
+      captureWarning && captureWarning !== NOT_READY_HINT
+        ? captureWarning
+        : undefined
+    const dismissed = error ?? warningToSurface
     setCaptureWarning(null)
     onClose(dismissed)
     setError(null)
