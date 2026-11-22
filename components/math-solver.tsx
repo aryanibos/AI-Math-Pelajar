@@ -132,7 +132,20 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 }),
               )
             } catch (err) {
-              if (err instanceof Error && err.message.startsWith("{")) throw err
+              if (
+                err instanceof Error &&
+                err.message.startsWith("{") &&
+                (() => {
+                  try {
+                    const payload = JSON.parse(err.message) as { error?: unknown }
+                    return typeof payload.error === "string"
+                  } catch {
+                    return false
+                  }
+                })()
+              ) {
+                throw err
+              }
               throw new Error(
                 JSON.stringify({
                   error: resolveSolveTransportError(

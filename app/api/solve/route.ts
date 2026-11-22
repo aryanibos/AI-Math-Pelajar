@@ -50,6 +50,15 @@ function privateEmpty(init?: ResponseInit): Response {
   return new Response(null, { ...init, headers })
 }
 
+function clientAbortedResponse(
+  req: Request,
+  refundQuotaOnce: () => void,
+): Response | null {
+  if (!req.signal.aborted) return null
+  refundQuotaOnce()
+  return privateEmpty({ status: 499 })
+}
+
 const systemPrompt = `Kamu adalah tutor matematika AI yang ramah dan sabar, khusus membantu siswa Indonesia menyelesaikan soal matematika.
 
 INSTRUKSI PENTING:
@@ -187,6 +196,9 @@ export async function POST(req: Request) {
 
   const jsonText = stripUtf8Bom(raw.text)
 
+  const abortedAfterRead = clientAbortedResponse(req, refundQuotaOnce)
+  if (abortedAfterRead) return abortedAfterRead
+
   if (!jsonText.trim()) {
     refundQuotaOnce()
     return privateJson({ error: "Empty request body" }, { status: 400 })
@@ -197,6 +209,8 @@ export async function POST(req: Request) {
     MAX_JSON_DEPTH,
   )
   if (jsonRejectReason) {
+    const aborted = clientAbortedResponse(req, refundQuotaOnce)
+    if (aborted) return aborted
     if (jsonRejectReason === "unterminated") {
       refundQuotaOnce()
     }
@@ -207,11 +221,16 @@ export async function POST(req: Request) {
   try {
     body = JSON.parse(jsonText)
   } catch (err) {
+    const aborted = clientAbortedResponse(req, refundQuotaOnce)
+    if (aborted) return aborted
     if (err instanceof SyntaxError) {
       refundQuotaOnce()
     }
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
   }
+
+  const abortedBeforeZod = clientAbortedResponse(req, refundQuotaOnce)
+  if (abortedBeforeZod) return abortedBeforeZod
 
   let parsed
   try {
@@ -225,6 +244,8 @@ export async function POST(req: Request) {
     )
   }
   if (!parsed.success) {
+    const aborted = clientAbortedResponse(req, refundQuotaOnce)
+    if (aborted) return aborted
     const details =
       process.env.NODE_ENV === "production"
         ? zodUserFacingDetails(parsed.error)
