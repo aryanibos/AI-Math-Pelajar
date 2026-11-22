@@ -190,6 +190,8 @@ export async function POST(req: Request) {
   }
 
   if (!raw.text) {
+    const aborted = clientAbortedResponse(req, refundQuotaOnce)
+    if (aborted) return aborted
     refundQuotaOnce()
     return privateJson({ error: "Empty request body" }, { status: 400 })
   }
@@ -200,6 +202,8 @@ export async function POST(req: Request) {
   if (abortedAfterRead) return abortedAfterRead
 
   if (!jsonText.trim()) {
+    const aborted = clientAbortedResponse(req, refundQuotaOnce)
+    if (aborted) return aborted
     refundQuotaOnce()
     return privateJson({ error: "Empty request body" }, { status: 400 })
   }
