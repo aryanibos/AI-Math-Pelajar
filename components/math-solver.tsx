@@ -432,7 +432,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [clearError, clearImageAttachment, inputMode])
 
   const handleSubmit = useCallback(async () => {
-    if (submittingRef.current || isLoadingForUi) return
+    // Block until useChat finishes stopping — isLoadingForUi is false during streamAborted teardown.
+    if (submittingRef.current || isLoading) return
     submittingRef.current = true
 
     setUploadError(null)
@@ -541,7 +542,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     } finally {
       submittingRef.current = false
     }
-  }, [isLoadingForUi, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages, streamAborted])
+  }, [isLoading, level, textInput, imagePreview, sendMessage, clearError, status, setMessages, messages, streamAborted])
 
   const handleReset = useCallback(() => {
     abortStream()
@@ -815,7 +816,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                     onClick={handleSubmit}
                     disabled={
                       !stripInvisibleChars(textInput).trim() ||
-                      isLoadingForUi ||
+                      isLoading ||
                       isProcessingImageUpload
                     }
                     className="w-full gap-2"
@@ -888,7 +889,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                   <Button
                     onClick={handleSubmit}
                     disabled={
-                      isLoadingForUi ||
+                      isLoading ||
                       isProcessingImageUpload ||
                       !imagePreview
                     }
