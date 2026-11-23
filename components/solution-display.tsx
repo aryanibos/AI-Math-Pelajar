@@ -268,7 +268,17 @@ export function SolutionDisplay({
             : assistantMetadata?.incomplete
               ? "Jawaban mungkin tidak lengkap. Silakan coba lagi jika penjelasan terasa terputus."
               : null
-  const isIncomplete = incompleteBanner !== null
+  const suppressIncompleteWithStreamError =
+    !!streamErrorMessage &&
+    assistantMetadata?.incomplete === true &&
+    !isTruncated &&
+    finishReason !== "content-filter" &&
+    finishReason !== "error"
+  const visibleIncompleteBanner =
+    incompleteBanner && !suppressIncompleteWithStreamError
+      ? incompleteBanner
+      : null
+  const isIncomplete = visibleIncompleteBanner !== null
 
   return (
     <div className="space-y-6">
@@ -338,9 +348,9 @@ export function SolutionDisplay({
             </div>
           ) : hasEmptySolution ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              {incompleteBanner ? (
+              {visibleIncompleteBanner ? (
                 <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
-                  {incompleteBanner}
+                  {visibleIncompleteBanner}
                 </p>
               ) : (
                 <p className="text-muted-foreground">
@@ -359,9 +369,9 @@ export function SolutionDisplay({
                   {streamErrorMessage} Jawaban di bawah mungkin tidak lengkap.
                 </p>
               )}
-              {incompleteBanner && (
+              {visibleIncompleteBanner && (
                 <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
-                  {incompleteBanner}
+                  {visibleIncompleteBanner}
                 </p>
               )}
               <MarkdownErrorBoundary

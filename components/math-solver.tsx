@@ -111,56 +111,43 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             const retryAfter = response.headers.get("Retry-After")
             const retryAfterSec = parseRetryAfterHeader(retryAfter)
             const rateLimitReason = response.headers.get("X-Rate-Limit-Reason")
+            const transportPayload = (parsed: {
+              error?: unknown
+              details?: Record<string, string[] | undefined>
+            }) =>
+              JSON.stringify({
+                error: resolveSolveTransportError(
+                  response.status,
+                  parsed.error,
+                  text,
+                  rateLimitReason,
+                ),
+                details: parsed.details,
+                rateLimitReason:
+                  response.status === 429 ? rateLimitReason ?? undefined : undefined,
+                retryAfterSec:
+                  response.status === 429 ? retryAfterSec : undefined,
+              })
+
+            let parsedBody: {
+              error?: unknown
+              details?: Record<string, string[] | undefined>
+            } | null = null
             try {
-              const parsed = JSON.parse(text) as {
-                error?: string
-                details?: Record<string, string[] | undefined>
+              const value: unknown = JSON.parse(text)
+              if (value && typeof value === "object" && !Array.isArray(value)) {
+                parsedBody = value as {
+                  error?: unknown
+                  details?: Record<string, string[] | undefined>
+                }
               }
-              throw new Error(
-                JSON.stringify({
-                  error: resolveSolveTransportError(
-                    response.status,
-                    parsed.error,
-                    text,
-                    rateLimitReason,
-                  ),
-                  details: parsed.details,
-                  rateLimitReason:
-                    response.status === 429 ? rateLimitReason ?? undefined : undefined,
-                  retryAfterSec:
-                    response.status === 429 ? retryAfterSec : undefined,
-                }),
-              )
-            } catch (err) {
-              if (
-                err instanceof Error &&
-                err.message.startsWith("{") &&
-                (() => {
-                  try {
-                    const payload = JSON.parse(err.message) as { error?: unknown }
-                    return typeof payload.error === "string"
-                  } catch {
-                    return false
-                  }
-                })()
-              ) {
-                throw err
-              }
-              throw new Error(
-                JSON.stringify({
-                  error: resolveSolveTransportError(
-                    response.status,
-                    undefined,
-                    text,
-                    rateLimitReason,
-                  ),
-                  rateLimitReason:
-                    response.status === 429 ? rateLimitReason ?? undefined : undefined,
-                  retryAfterSec:
-                    response.status === 429 ? retryAfterSec : undefined,
-                }),
-              )
+            } catch {
+              // Non-JSON body — fall through to plain-text / status fallback.
             }
+
+            throw new Error(
+              transportPayload(parsedBody ?? {}),
+            )
           }
           return response
         },
@@ -538,9 +525,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         streamAborted ||
         messages.some((m) => m.role === "assistant")
       setCancelledBeforeContent(false)
-      if (status === "ready" || status === "error") {
-        setStreamAborted(false)
-      }
+      setStreamAborted(false)
       // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
       if (shouldClearHistory) {
         // Flush empty state before sendMessage so prepareSendMessagesRequest sees fresh history.
