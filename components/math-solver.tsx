@@ -937,7 +937,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
             >
               <SolutionDisplay 
                 messages={messages} 
-                isLoading={isLoading}
+                isLoading={isLoadingForUi}
                 level={level}
                 streamErrorMessage={
                   streamAborted && hasAssistantContent
