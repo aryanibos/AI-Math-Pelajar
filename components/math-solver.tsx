@@ -432,7 +432,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [clearError, clearImageAttachment, inputMode])
 
   const handleSubmit = useCallback(async () => {
-    // Block until useChat finishes stopping — isLoadingForUi is false during streamAborted teardown.
+    // Block until useChat leaves streaming/submitted (avoids overlapping solves during stop()).
     if (submittingRef.current || isLoading) return
     submittingRef.current = true
 
@@ -610,13 +610,16 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     // Late tokens after stop() / Soal Baru / Kembali teardown — drop assistant shell.
     if (streamAborted && cancelledBeforeContent) {
       setMessages([])
-    } else {
-      setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
+      return
     }
+    // Keep partial assistant text after cancel-with-content; only strip empty shells.
+    if (hasAssistantContent) return
+    setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
   }, [
     streamAborted,
     cancelledBeforeContent,
     hasAssistantMessage,
+    hasAssistantContent,
     messages,
     setMessages,
   ])
