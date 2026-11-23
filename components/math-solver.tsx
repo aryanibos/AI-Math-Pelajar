@@ -70,6 +70,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   const [streamAborted, setStreamAborted] = useState(false)
   /** Cancel before any assistant text — ignore late stream chunks for solution view. */
   const [cancelledBeforeContent, setCancelledBeforeContent] = useState(false)
+  /** Latched when user cancels after partial output — survives `streamAborted` teardown. */
+  const [partialCancelNotice, setPartialCancelNotice] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fileReaderRef = useRef<FileReader | null>(null)
   const mountedRef = useRef(true)
@@ -207,6 +209,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setStreamAborted(true)
     if (hasAssistantContent) {
       setCancelledBeforeContent(false)
+      setPartialCancelNotice(true)
       // Keep stream error for inline partial-output banner in SolutionDisplay.
     } else {
       setCancelledBeforeContent(true)
@@ -526,6 +529,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
         messages.some((m) => m.role === "assistant")
       setCancelledBeforeContent(false)
       setStreamAborted(false)
+      setPartialCancelNotice(false)
       // Replace prior messages on retry so failed/aborted submits don't accumulate duplicates.
       if (shouldClearHistory) {
         // Flush empty state before sendMessage so prepareSendMessagesRequest sees fresh history.
@@ -546,6 +550,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     setInputMode(null)
     setUploadError(null)
     clearError()
+    setPartialCancelNotice(false)
     setMessages([])
   }, [setMessages, clearError, abortStream, releaseInFlightWork])
 
@@ -925,7 +930,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
                 isLoading={isLoadingForUi}
                 level={level}
                 streamErrorMessage={
-                  streamAborted && hasAssistantContent
+                  (partialCancelNotice || streamAborted) && hasAssistantContent
                     ? "Permintaan dibatalkan."
                     : error && hasAssistantContent
                       ? formatChatError(error.message)
