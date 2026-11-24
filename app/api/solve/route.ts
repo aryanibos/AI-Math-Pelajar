@@ -59,6 +59,16 @@ function clientAbortedResponse(
   return privateEmpty({ status: 499 })
 }
 
+/** Refund pre-parse JSON failures only when the body may have been truncated (not complete bogus JSON). */
+function shouldRefundLikelyTruncatedJson(req: Request, bodyText: string): boolean {
+  if (req.signal.aborted) return true
+  const declaredRaw = req.headers.get("content-length")
+  if (declaredRaw == null) return true
+  const declared = Number(declaredRaw)
+  if (!Number.isInteger(declared) || declared < 0) return false
+  return new TextEncoder().encode(bodyText).byteLength < declared
+}
+
 const systemPrompt = `Kamu adalah tutor matematika AI yang ramah dan sabar, khusus membantu siswa Indonesia menyelesaikan soal matematika.
 
 INSTRUKSI PENTING:
@@ -215,7 +225,10 @@ export async function POST(req: Request) {
   if (jsonRejectReason) {
     const aborted = clientAbortedResponse(req, refundQuotaOnce)
     if (aborted) return aborted
-    if (jsonRejectReason === "unterminated") {
+    if (
+      jsonRejectReason === "unterminated" &&
+      shouldRefundLikelyTruncatedJson(req, jsonText)
+    ) {
       refundQuotaOnce()
     }
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
@@ -227,7 +240,10 @@ export async function POST(req: Request) {
   } catch (err) {
     const aborted = clientAbortedResponse(req, refundQuotaOnce)
     if (aborted) return aborted
-    if (err instanceof SyntaxError) {
+    if (
+      err instanceof SyntaxError &&
+      shouldRefundLikelyTruncatedJson(req, jsonText)
+    ) {
       refundQuotaOnce()
     }
     return privateJson({ error: "Invalid JSON body" }, { status: 400 })
