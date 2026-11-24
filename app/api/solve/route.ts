@@ -347,8 +347,11 @@ export async function POST(req: Request) {
             .join("\n")
             .trim() ?? ""
 
+        // Charge when the user received substantive output — including token-cap
+        // truncation (`length`), not only a clean `stop`.
         const billableSuccess =
-          finishReason === "stop" && assistantText.length > 0
+          assistantText.length > 0 &&
+          (finishReason === "stop" || finishReason === "length")
 
         if (!billableSuccess) {
           refundQuotaOnce()
