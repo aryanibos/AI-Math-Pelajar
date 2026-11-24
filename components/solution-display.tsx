@@ -268,12 +268,9 @@ export function SolutionDisplay({
             : assistantMetadata?.incomplete
               ? "Jawaban mungkin tidak lengkap. Silakan coba lagi jika penjelasan terasa terputus."
               : null
+  // Avoid stacked amber incomplete banners when an inline stream error (cancel, transport, etc.) is already shown.
   const suppressIncompleteWithStreamError =
-    !!streamErrorMessage &&
-    assistantMetadata?.incomplete === true &&
-    !isTruncated &&
-    finishReason !== "content-filter" &&
-    finishReason !== "error"
+    !!streamErrorMessage && !isTruncated
   const visibleIncompleteBanner =
     incompleteBanner && !suppressIncompleteWithStreamError
       ? incompleteBanner
