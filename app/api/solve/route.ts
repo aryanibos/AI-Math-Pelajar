@@ -333,11 +333,6 @@ export async function POST(req: Request) {
         }
       },
       onFinish: ({ isAborted, finishReason, responseMessage }) => {
-        if (isAborted) {
-          refundQuotaOnce()
-          return
-        }
-
         const assistantText =
           responseMessage?.parts
             ?.filter(
@@ -346,6 +341,14 @@ export async function POST(req: Request) {
             .map((p) => p.text)
             .join("\n")
             .trim() ?? ""
+
+        if (isAborted) {
+          // Empty cancel before tokens — refund; cancel after substantive output still consumes quota.
+          if (assistantText.length === 0) {
+            refundQuotaOnce()
+          }
+          return
+        }
 
         // Charge when the user received substantive output — including token-cap
         // truncation (`length`), not only a clean `stop`.
