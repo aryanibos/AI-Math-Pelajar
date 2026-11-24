@@ -275,7 +275,8 @@ export function SolutionDisplay({
     incompleteBanner && !suppressIncompleteWithStreamError
       ? incompleteBanner
       : null
-  const isIncomplete = visibleIncompleteBanner !== null
+  // Inline stream errors (cancel, transport) also mark the solution as degraded for header/tips.
+  const isIncomplete = visibleIncompleteBanner !== null || !!streamErrorMessage
 
   return (
     <div className="space-y-6">
