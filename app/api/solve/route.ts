@@ -321,8 +321,6 @@ export async function POST(req: Request) {
       maxOutputTokens: 4000,
     })
 
-    let streamLifecycleSettled = false
-
     return result.toUIMessageStreamResponse({
       headers: PRIVATE_CACHE_HEADERS,
       messageMetadata: ({ part }) => {
@@ -336,7 +334,6 @@ export async function POST(req: Request) {
         }
       },
       onFinish: ({ isAborted, finishReason, responseMessage }) => {
-        streamLifecycleSettled = true
         const assistantText =
           responseMessage?.parts
             ?.filter(
@@ -366,10 +363,7 @@ export async function POST(req: Request) {
       },
       onError: (error) => {
         console.error("Solve API stream error:", error)
-        // Let onFinish bill/refund when it already ran (e.g. partial output delivered).
-        if (!streamLifecycleSettled) {
-          refundQuotaOnce()
-        }
+        // Billing/refunds only in onFinish — onError runs before flush and must not refund early.
         return JSON.stringify({
           error: "AI service unavailable. Please try again later.",
         })
