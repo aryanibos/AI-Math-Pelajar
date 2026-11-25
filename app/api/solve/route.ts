@@ -333,7 +333,7 @@ export async function POST(req: Request) {
           return { incomplete: true, finishReason: reason }
         }
       },
-      onFinish: ({ isAborted, finishReason, responseMessage }) => {
+      onFinish: ({ isAborted, responseMessage }) => {
         const assistantText =
           responseMessage?.parts
             ?.filter(
@@ -351,14 +351,8 @@ export async function POST(req: Request) {
           return
         }
 
-        // Charge when the user received substantive output (stop, length, other, etc.),
-        // except known non-deliverable finishes (error, content-filter) or empty completions.
-        const shouldRefund =
-          assistantText.length === 0 ||
-          finishReason === "content-filter" ||
-          finishReason === "error"
-
-        if (shouldRefund) {
+        // Charge whenever the user received substantive assistant text — regardless of finishReason.
+        if (assistantText.length === 0) {
           refundQuotaOnce()
         }
       },
