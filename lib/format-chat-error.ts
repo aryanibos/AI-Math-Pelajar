@@ -55,7 +55,7 @@ export function solveHttpErrorMessage(status: number): string {
   if (status === 429) return RATE_LIMIT_REASON_API_ERRORS.rate_limited
   if (status === 413) return "Request body too large"
   if (status === 408) return "Request body read timed out."
-  if (status === 400) return "Invalid request"
+  if (status === 403 || status === 400) return "Invalid request"
   return "Failed to fetch the chat response."
 }
 

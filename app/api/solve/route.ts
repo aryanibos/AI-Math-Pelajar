@@ -23,6 +23,7 @@ import {
   refundRateLimit,
 } from "@/lib/rate-limit"
 import { readRequestBodyWithLimit } from "@/lib/read-body-limit"
+import { rejectCrossOriginBrowserPost } from "@/lib/browser-origin-guard"
 
 export const maxDuration = 60
 
@@ -113,6 +114,9 @@ PENYESUAIAN TINGKAT:
 - S1: Gunakan pendekatan formal, bukti matematis jika perlu, dan referensi teori`
 
 export async function POST(req: Request) {
+  const crossOrigin = rejectCrossOriginBrowserPost(req, privateJson)
+  if (crossOrigin) return crossOrigin
+
   const rateKey = getRateLimitKey(req)
   const rateLimit = getRateLimitForKey(rateKey)
 
