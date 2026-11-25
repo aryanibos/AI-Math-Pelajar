@@ -351,13 +351,14 @@ export async function POST(req: Request) {
           return
         }
 
-        // Charge when the user received substantive output — including token-cap
-        // truncation (`length`), not only a clean `stop`.
-        const billableSuccess =
-          assistantText.length > 0 &&
-          (finishReason === "stop" || finishReason === "length")
+        // Charge when the user received substantive output (stop, length, other, etc.),
+        // except known non-deliverable finishes (error, content-filter) or empty completions.
+        const shouldRefund =
+          assistantText.length === 0 ||
+          finishReason === "content-filter" ||
+          finishReason === "error"
 
-        if (!billableSuccess) {
+        if (shouldRefund) {
           refundQuotaOnce()
         }
       },
