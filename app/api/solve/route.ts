@@ -63,7 +63,8 @@ function clientAbortedResponse(
 function shouldRefundLikelyTruncatedJson(req: Request, bodyText: string): boolean {
   if (req.signal.aborted) return true
   const declaredRaw = req.headers.get("content-length")
-  if (declaredRaw == null) return true
+  // Without Content-Length we cannot prove truncation vs complete invalid JSON.
+  if (declaredRaw == null) return false
   const declared = Number(declaredRaw)
   if (!Number.isInteger(declared) || declared < 0) return false
   return new TextEncoder().encode(bodyText).byteLength < declared
@@ -320,6 +321,8 @@ export async function POST(req: Request) {
       maxOutputTokens: 4000,
     })
 
+    let streamLifecycleSettled = false
+
     return result.toUIMessageStreamResponse({
       headers: PRIVATE_CACHE_HEADERS,
       messageMetadata: ({ part }) => {
@@ -333,6 +336,7 @@ export async function POST(req: Request) {
         }
       },
       onFinish: ({ isAborted, finishReason, responseMessage }) => {
+        streamLifecycleSettled = true
         const assistantText =
           responseMessage?.parts
             ?.filter(
@@ -362,7 +366,10 @@ export async function POST(req: Request) {
       },
       onError: (error) => {
         console.error("Solve API stream error:", error)
-        refundQuotaOnce()
+        // Let onFinish bill/refund when it already ran (e.g. partial output delivered).
+        if (!streamLifecycleSettled) {
+          refundQuotaOnce()
+        }
         return JSON.stringify({
           error: "AI service unavailable. Please try again later.",
         })
