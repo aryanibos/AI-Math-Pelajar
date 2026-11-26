@@ -34,13 +34,15 @@ export function rejectCrossOriginBrowserPost(
     ? req.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
     : undefined
   const hostHeader = forwardedHost ?? req.headers.get("host")?.trim()
-  if (!hostHeader) return null
+  // Browsers send Host on same-origin POSTs; Origin without Host cannot be verified.
+  if (!hostHeader) {
+    return respond({ error: "Invalid request" }, { status: 403 })
+  }
 
-  const requestHost = canonicalRequestHost(
-    hostHeader,
-    originUrl.protocol === "https:",
-  )
-  if (originHost.toLowerCase() !== requestHost.toLowerCase()) {
+  const isHttps = originUrl.protocol === "https:"
+  const requestHost = canonicalRequestHost(hostHeader, isHttps)
+  const normalizedOriginHost = canonicalRequestHost(originHost, isHttps)
+  if (normalizedOriginHost.toLowerCase() !== requestHost.toLowerCase()) {
     return respond({ error: "Invalid request" }, { status: 403 })
   }
   return null
