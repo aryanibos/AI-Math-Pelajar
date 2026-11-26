@@ -16,10 +16,11 @@ export function rejectCrossOriginBrowserPost(
     return respond({ error: "Invalid request" }, { status: 403 })
   }
 
-  const forwardedHost = req.headers
-    .get("x-forwarded-host")
-    ?.split(",")[0]
-    ?.trim()
+  const trustProxy =
+    process.env.VERCEL === "1" || process.env.TRUST_PROXY_HEADERS === "1"
+  const forwardedHost = trustProxy
+    ? req.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+    : undefined
   const hostHeader = forwardedHost ?? req.headers.get("host")?.trim()
   if (!hostHeader) return null
 
