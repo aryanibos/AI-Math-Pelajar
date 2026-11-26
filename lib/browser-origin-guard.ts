@@ -28,11 +28,12 @@ export function rejectCrossOriginBrowserPost(
   }
   const originHost = originUrl.host
 
-  const trustProxy =
-    process.env.VERCEL === "1" || process.env.TRUST_PROXY_HEADERS === "1"
-  const forwardedHostRaw = trustProxy
-    ? req.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
-    : undefined
+  // Only Vercel sets x-forwarded-host at the edge; on self-host it is client-spoofable
+  // even when TRUST_PROXY_HEADERS enables trusted XFF/X-Real-IP for rate limits.
+  const forwardedHostRaw =
+    process.env.VERCEL === "1"
+      ? req.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+      : undefined
   // Empty XFH segment must not block fallback to `Host` (?? only skips null/undefined).
   const forwardedHost = forwardedHostRaw ? forwardedHostRaw : undefined
   const hostHeader = forwardedHost ?? req.headers.get("host")?.trim()
