@@ -30,9 +30,11 @@ export function rejectCrossOriginBrowserPost(
 
   const trustProxy =
     process.env.VERCEL === "1" || process.env.TRUST_PROXY_HEADERS === "1"
-  const forwardedHost = trustProxy
+  const forwardedHostRaw = trustProxy
     ? req.headers.get("x-forwarded-host")?.split(",")[0]?.trim()
     : undefined
+  // Empty XFH segment must not block fallback to `Host` (?? only skips null/undefined).
+  const forwardedHost = forwardedHostRaw ? forwardedHostRaw : undefined
   const hostHeader = forwardedHost ?? req.headers.get("host")?.trim()
   // Browsers send Host on same-origin POSTs; Origin without Host cannot be verified.
   if (!hostHeader) {
