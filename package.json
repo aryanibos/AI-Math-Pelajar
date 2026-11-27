@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "start": "next start",
     "check:main-commit-limit": "node scripts/check-main-commit-limit.mjs",
+    "test": "node --experimental-strip-types --test 'lib/**/*.test.ts'",
     "prepare": "node scripts/setup-githooks.mjs"
   },
   "dependencies": {
