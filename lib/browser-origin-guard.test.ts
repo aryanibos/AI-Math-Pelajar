@@ -20,6 +20,7 @@ describe("rejectCrossOriginBrowserPost", () => {
     process.env = { ...env }
     delete process.env.VERCEL
     delete process.env.TRUST_PROXY_HEADERS
+    delete process.env.ALLOW_SOLVE_WITHOUT_ORIGIN
   })
 
   afterEach(() => {
@@ -34,7 +35,27 @@ describe("rejectCrossOriginBrowserPost", () => {
     assert.equal(rejectCrossOriginBrowserPost(req, jsonResponder), null)
   })
 
-  it("allows POST without Origin (non-browser clients)", () => {
+  it("allows POST without Origin in non-production", () => {
+    process.env.NODE_ENV = "development"
+    const req = post("https://app.example/api/solve", {
+      Host: "app.example",
+    })
+    assert.equal(rejectCrossOriginBrowserPost(req, jsonResponder), null)
+  })
+
+  it("rejects POST without Origin in production", () => {
+    process.env.NODE_ENV = "production"
+    const req = post("https://app.example/api/solve", {
+      Host: "app.example",
+    })
+    const res = rejectCrossOriginBrowserPost(req, jsonResponder)
+    assert.ok(res)
+    assert.equal(res.status, 403)
+  })
+
+  it("allows POST without Origin in production when ALLOW_SOLVE_WITHOUT_ORIGIN=1", () => {
+    process.env.NODE_ENV = "production"
+    process.env.ALLOW_SOLVE_WITHOUT_ORIGIN = "1"
     const req = post("https://app.example/api/solve", {
       Host: "app.example",
     })

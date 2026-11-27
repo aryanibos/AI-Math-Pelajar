@@ -11,14 +11,23 @@ function canonicalRequestHost(hostHeader: string, isHttps: boolean): string {
 
 /**
  * Reject browser cross-origin POSTs before rate-limiting (no quota charge).
- * Non-browser clients typically omit `Origin`.
+ * In production, POSTs without `Origin` are rejected unless
+ * `ALLOW_SOLVE_WITHOUT_ORIGIN=1` (non-browser integrations / health checks).
  */
 export function rejectCrossOriginBrowserPost(
   req: Request,
   respond: (body: unknown, init?: ResponseInit) => Response,
 ): Response | null {
   const origin = req.headers.get("origin")?.trim()
-  if (!origin) return null
+  if (!origin) {
+    if (
+      process.env.NODE_ENV === "production" &&
+      process.env.ALLOW_SOLVE_WITHOUT_ORIGIN !== "1"
+    ) {
+      return respond({ error: "Invalid request" }, { status: 403 })
+    }
+    return null
+  }
 
   let originUrl: URL
   try {

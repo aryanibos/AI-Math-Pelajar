@@ -19,6 +19,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |----------|----------|-------------|
 | `OPENAI_API_KEY` | Yes (local / non-Vercel) | API key for the OpenAI provider used by the AI SDK (`openai/gpt-4o` in `app/api/solve/route.ts`). On Vercel, configure the key in the project dashboard. |
 | `TRUST_PROXY_HEADERS` | Self-hosted only | Set to `1` when the app sits behind a trusted reverse proxy so rate limiting can use `X-Forwarded-For` / `X-Real-IP`. **Do not enable** on Vercel (use `x-vercel-forwarded-for` instead). |
+| `ALLOW_SOLVE_WITHOUT_ORIGIN` | Optional | Set to `1` in production only if you must call `/api/solve` from a trusted server without an `Origin` header (default: require `Origin` in production). |
 | `VERCEL` | Set by Vercel | When `1`, client IP for rate limits comes from `x-vercel-forwarded-for` only. |
 
 Rate limits (per server instance): **15** requests/hour per verified IP, **5** requests/hour for the shared unverified bucket when IP cannot be verified in production.
