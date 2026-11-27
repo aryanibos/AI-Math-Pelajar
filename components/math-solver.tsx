@@ -432,9 +432,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   }, [clearError, clearImageAttachment, inputMode])
 
   const handleSubmit = useCallback(async () => {
-    // Block until useChat leaves streaming/submitted (avoids overlapping solves during stop()).
-    if (submittingRef.current || isLoading) return
+    // Claim ref first — avoids double-submit races before isLoading flips.
+    if (submittingRef.current) return
     submittingRef.current = true
+    if (isLoading) {
+      submittingRef.current = false
+      return
+    }
 
     setUploadError(null)
     clearError()

@@ -363,9 +363,8 @@ export async function POST(req: Request) {
       onError: (error) => {
         console.error("Solve API stream error:", error)
         // Billing/refunds only in onFinish — onError runs before flush and must not refund early.
-        return JSON.stringify({
-          error: "AI service unavailable. Please try again later.",
-        })
+        // UI stream onError expects plain text (not JSON); formatChatError maps this API string.
+        return "AI service unavailable. Please try again later."
       },
     })
   } catch (err) {
