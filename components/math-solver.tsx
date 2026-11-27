@@ -607,8 +607,13 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       discardAssistantUntilIdleRef.current ||
       (streamAborted && cancelledBeforeContent)
     if (!shouldDiscard || !hasAssistantMessage) return
-    // Late tokens after stop() / Soal Baru / Kembali teardown — drop assistant shell.
+    // Late tokens after stop() — keep partial text if first chunk raced with cancel.
     if (streamAborted && cancelledBeforeContent) {
+      if (hasAssistantContent) {
+        setCancelledBeforeContent(false)
+        setPartialCancelNotice(true)
+        return
+      }
       setMessages([])
       return
     }
