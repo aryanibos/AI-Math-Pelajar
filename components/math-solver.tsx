@@ -204,8 +204,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
-  /** User cancelled before any assistant text — ignore late tokens until stream settles. */
-  const cancelBeforeContentActive = streamAborted && cancelledBeforeContent
+  /** Latched until next submit/reset — block solution view if late tokens race after stop(). */
+  const cancelBeforeContentActive = cancelledBeforeContent
 
   const abortStream = useCallback(() => {
     if (status !== "streaming" && status !== "submitted") return
@@ -566,8 +566,11 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   // Hide immediately on abort before content to avoid flicker back to input.
   const hasSolution =
     (hasAssistantContent && !cancelBeforeContentActive) ||
-    (isLoadingForUi && hasAssistantMessage) ||
-    (status === "ready" && hasAssistantContent && !streamAborted)
+    (isLoadingForUi && hasAssistantMessage && !cancelBeforeContentActive) ||
+    (status === "ready" &&
+      hasAssistantContent &&
+      !streamAborted &&
+      !cancelBeforeContentActive)
 
   useEffect(() => {
     if (status !== "ready" && status !== "error") return
@@ -576,10 +579,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
       if (discardAssistantUntilIdleRef.current) {
         discardAssistantUntilIdleRef.current = false
       }
-      setStreamAborted((aborted) => {
-        if (aborted) setCancelledBeforeContent(false)
-        return false
-      })
+      setStreamAborted(false)
     }, 0)
     return () => clearTimeout(id)
   }, [status, streamAborted])
