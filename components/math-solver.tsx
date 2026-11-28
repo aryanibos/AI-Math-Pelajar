@@ -204,9 +204,8 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
-  /** Cancel-before-content only hides UI until the first token; late chunks keep partial output. */
-  const cancelBeforeContentBlocksUi =
-    streamAborted && cancelledBeforeContent && !hasAssistantContent
+  /** User cancelled before any assistant text — ignore late tokens until stream settles. */
+  const cancelBeforeContentActive = streamAborted && cancelledBeforeContent
 
   const abortStream = useCallback(() => {
     if (status !== "streaming" && status !== "submitted") return
@@ -566,7 +565,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   // Show solution view once the assistant message exists (incl. loading spinner before first token).
   // Hide immediately on abort before content to avoid flicker back to input.
   const hasSolution =
-    (hasAssistantContent && !cancelBeforeContentBlocksUi) ||
+    (hasAssistantContent && !cancelBeforeContentActive) ||
     (isLoadingForUi && hasAssistantMessage) ||
     (status === "ready" && hasAssistantContent && !streamAborted)
 
@@ -612,9 +611,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   useEffect(() => {
     const shouldDiscard =
-      discardAssistantUntilIdleRef.current || cancelBeforeContentBlocksUi
+      discardAssistantUntilIdleRef.current || cancelBeforeContentActive
     if (!shouldDiscard || !hasAssistantMessage) return
-    if (cancelBeforeContentBlocksUi) {
+    if (cancelBeforeContentActive) {
       setMessages([])
       return
     }
@@ -622,7 +621,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (hasAssistantContent) return
     setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
   }, [
-    cancelBeforeContentBlocksUi,
+    cancelBeforeContentActive,
     hasAssistantMessage,
     hasAssistantContent,
     messages,
