@@ -1,7 +1,7 @@
 import {
   RATE_LIMIT_REQUESTS,
   RATE_LIMIT_UNVERIFIED_REQUESTS,
-} from "@/lib/solve-limits"
+} from "./solve-limits"
 
 type Bucket = { count: number; resetAt: number }
 
