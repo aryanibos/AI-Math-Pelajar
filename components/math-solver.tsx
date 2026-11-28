@@ -204,6 +204,10 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   const hasAssistantMessage = messages.some((m) => m.role === "assistant")
 
+  /** Cancel-before-content only hides UI until the first token; late chunks keep partial output. */
+  const cancelBeforeContentBlocksUi =
+    streamAborted && cancelledBeforeContent && !hasAssistantContent
+
   const abortStream = useCallback(() => {
     if (status !== "streaming" && status !== "submitted") return
     setStreamAborted(true)
@@ -562,7 +566,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
   // Show solution view once the assistant message exists (incl. loading spinner before first token).
   // Hide immediately on abort before content to avoid flicker back to input.
   const hasSolution =
-    (hasAssistantContent && !(streamAborted && cancelledBeforeContent)) ||
+    (hasAssistantContent && !cancelBeforeContentBlocksUi) ||
     (isLoadingForUi && hasAssistantMessage) ||
     (status === "ready" && hasAssistantContent && !streamAborted)
 
@@ -608,16 +612,9 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
 
   useEffect(() => {
     const shouldDiscard =
-      discardAssistantUntilIdleRef.current ||
-      (streamAborted && cancelledBeforeContent)
+      discardAssistantUntilIdleRef.current || cancelBeforeContentBlocksUi
     if (!shouldDiscard || !hasAssistantMessage) return
-    // Late tokens after stop() — keep partial text if first chunk raced with cancel.
-    if (streamAborted && cancelledBeforeContent) {
-      if (hasAssistantContent) {
-        setCancelledBeforeContent(false)
-        setPartialCancelNotice(true)
-        return
-      }
+    if (cancelBeforeContentBlocksUi) {
       setMessages([])
       return
     }
@@ -625,8 +622,7 @@ export function MathSolver({ level, onBack }: MathSolverProps) {
     if (hasAssistantContent) return
     setMessages((prev) => prev.filter((m) => m.role !== "assistant"))
   }, [
-    streamAborted,
-    cancelledBeforeContent,
+    cancelBeforeContentBlocksUi,
     hasAssistantMessage,
     hasAssistantContent,
     messages,
